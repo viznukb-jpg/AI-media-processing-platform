@@ -6,6 +6,13 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import crypto from "crypto";
 
+import { z } from "zod";
+
+const UploadSchema = z.object({
+  filename: z.string().min(1, "Filename is required"),
+  contentType: z.string().min(1, "Content type is required").regex(/^(image|video)\/.+$/, "Invalid content type"),
+});
+
 export async function POST(req: Request) {
   try {
     const session = await auth.api.getSession({
@@ -17,14 +24,16 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { filename, contentType } = body;
+    const parseResult = UploadSchema.safeParse(body);
 
-    if (!filename || !contentType) {
+    if (!parseResult.success) {
       return NextResponse.json(
-        { error: "Filename and contentType are required" },
+        { error: parseResult.error.errors[0].message },
         { status: 400 }
       );
     }
+
+    const { filename, contentType } = parseResult.data;
 
     // Generate unique key for S3
     const ext = filename.split(".").pop();

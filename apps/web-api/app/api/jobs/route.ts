@@ -3,6 +3,12 @@ import { prisma, mediaQueue } from "@repo/db";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 
+import { z } from "zod";
+
+const JobSchema = z.object({
+  originalUrl: z.string().min(1, "originalUrl is required"),
+});
+
 export async function POST(req: Request) {
   try {
     const session = await auth.api.getSession({
@@ -14,14 +20,16 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { originalUrl } = body;
+    const parseResult = JobSchema.safeParse(body);
 
-    if (!originalUrl) {
+    if (!parseResult.success) {
       return NextResponse.json(
-        { error: "originalUrl is required" },
+        { error: parseResult.error.errors[0].message },
         { status: 400 }
       );
     }
+
+    const { originalUrl } = parseResult.data;
 
     // Create the job in DB
     const job = await prisma.job.create({
@@ -32,11 +40,17 @@ export async function POST(req: Request) {
       },
     });
 
-    // Enqueue the job for the worker
+    // Enqueue the job for the worker with retries and exponential backoff
     await mediaQueue.add("process-media", {
       jobId: job.id,
       originalUrl,
       userId: session.user.id,
+    }, {
+      attempts: 3,
+      backoff: {
+        type: "exponential",
+        delay: 2000,
+      },
     });
 
     return NextResponse.json({ job }, { status: 201 });

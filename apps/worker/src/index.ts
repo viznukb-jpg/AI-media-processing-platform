@@ -121,8 +121,35 @@ const worker = new Worker(
 worker.on("completed", (job) =>
   console.log(`[Worker] Job ${job.id} completed`),
 );
-worker.on("failed", (job, err) =>
-  console.error(`[Worker] Job ${job?.id} failed:`, err),
-);
+worker.on("failed", (job, err) => {
+  if (job) {
+    const attemptsMade = job.attemptsMade;
+    const maxAttempts = job.opts.attempts || 1;
+    
+    if (attemptsMade >= maxAttempts) {
+      // Dead-letter logic: job has exhausted all retries
+      console.error(JSON.stringify({
+        level: "error",
+        event: "DEAD_LETTER",
+        jobId: job.id,
+        userId: job.data.userId,
+        error: err.message,
+        timestamp: new Date().toISOString()
+      }));
+    } else {
+      console.warn(JSON.stringify({
+        level: "warn",
+        event: "JOB_FAILED_RETRYING",
+        jobId: job.id,
+        attempt: attemptsMade,
+        maxAttempts: maxAttempts,
+        error: err.message,
+        timestamp: new Date().toISOString()
+      }));
+    }
+  } else {
+    console.error(`[Worker] Unknown job failed:`, err);
+  }
+});
 
 console.log("Media processing worker started, listening for jobs...");
