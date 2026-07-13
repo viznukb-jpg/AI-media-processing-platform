@@ -43,7 +43,7 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error("Error creating job:", error);
     return NextResponse.json(
-      { error: "Failed to create job" },
+      { error: error instanceof Error ? error.message : "Failed to create job" },
       { status: 500 }
     );
   }
@@ -68,7 +68,7 @@ export async function GET(req: Request) {
   } catch (error) {
     console.error("Error fetching jobs:", error);
     return NextResponse.json(
-      { error: "Failed to fetch jobs" },
+      { error: error instanceof Error ? error.message : "Failed to fetch jobs" },
       { status: 500 }
     );
   }

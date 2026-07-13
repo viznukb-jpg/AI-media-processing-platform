@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, Alert, ActivityIndicat
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
 import { useRouter } from "expo-router";
-import { authClient } from "../../utils/auth-client";
+import { authClient, apiFetch } from "../../utils/auth-client";
 
 export default function UploadScreen() {
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -41,13 +41,13 @@ export default function UploadScreen() {
       const contentType = "image/jpeg"; // Simplified for this example
 
       // 1. Get Presigned URL
-      const { data: urlData, error: urlError } = await authClient.$fetch<any>("/api/upload-url", {
+      const urlData = await apiFetch("/api/upload-url", {
         method: "POST",
         body: JSON.stringify({ filename: fileName, contentType }),
       });
 
-      if (urlError || !urlData?.uploadUrl) {
-        throw new Error(urlError?.message || "Failed to get upload URL");
+      if (!urlData?.uploadUrl) {
+        throw new Error("Failed to get upload URL");
       }
 
       // 2. Upload file to S3
@@ -65,13 +65,13 @@ export default function UploadScreen() {
       });
 
       // 3. Create Job
-      const { data: jobData, error: jobError } = await authClient.$fetch<any>("/api/jobs", {
+      const jobData = await apiFetch("/api/jobs", {
         method: "POST",
         body: JSON.stringify({ originalUrl: urlData.key }),
       });
 
-      if (jobError || !jobData?.job) {
-        throw new Error(jobError?.message || "Failed to create job");
+      if (!jobData?.job) {
+        throw new Error("Failed to create job");
       }
 
       Alert.alert("Success", "Media uploaded and job queued!");

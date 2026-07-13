@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { authClient } from "../../utils/auth-client";
+import { authClient, apiFetch } from "../../utils/auth-client";
 
 // Define the Job type
 type Job = {
@@ -14,11 +14,7 @@ type Job = {
 };
 
 const fetchJobs = async (): Promise<Job[]> => {
-  // authClient.$fetch automatically includes the session token for React Native
-  const { data, error } = await authClient.$fetch<any>("/api/jobs");
-  if (error) {
-    throw new Error(error.message || "Failed to fetch jobs");
-  }
+  const data = await apiFetch("/api/jobs");
   return data?.jobs || [];
 };
 

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, Image, Button } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { authClient } from "../../utils/auth-client";
+import { authClient, apiFetch } from "../../utils/auth-client";
 
 type JobEvent = {
   id: string;
@@ -22,10 +22,7 @@ type Job = {
 };
 
 const fetchJobDetails = async (id: string): Promise<Job> => {
-  const { data, error } = await authClient.$fetch<any>(`/api/jobs/${id}`);
-  if (error) {
-    throw new Error(error.message || "Failed to fetch job");
-  }
+  const data = await apiFetch(`/api/jobs/${id}`);
   return data?.job;
 };
 
