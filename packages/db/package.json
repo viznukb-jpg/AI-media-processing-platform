@@ -9,9 +9,9 @@
     "push": "prisma db push"
   },
   "dependencies": {
-    "@prisma/client": "^6.0.0",
-    "prisma": "^6.0.0",
+    "@prisma/client": "^6.19.3",
     "bullmq": "^5.0.0",
-    "ioredis": "^5.0.0"
+    "ioredis": "^5.0.0",
+    "prisma": "^6.19.3"
   }
 }
