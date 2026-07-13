@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  jobs      Job[]
+  createdAt DateTime @default(now())
+}
+
+enum JobStatus {
+  queued
+  downloading
+  analyzing
+  generating_thumbnail
+  completed
+  failed
+}
+
+model Job {
+  id           String     @id @default(uuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id])
+  status       JobStatus  @default(queued)
+  progress     Int        @default(0)
+  originalUrl  String
+  processedUrl String?
+  error        String?
+  events       JobEvent[]
+  createdAt    DateTime   @default(now())
+}
+
+model JobEvent {
+  id        String    @id @default(uuid())
+  jobId     String
+  job       Job       @relation(fields: [jobId], references: [id])
+  status    JobStatus
+  message   String?
+  timestamp DateTime  @default(now())
+}

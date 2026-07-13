@@ -1,0 +1,52 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependency directories
+node_modules/
+.npm
+.eslintcache
+
+# Next.js / React Native / Expo
+.next/
+dist/
+build/
+.expo/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# TypeScript cache
+*.tsbuildinfo
+
+# dotenv environment variables file
+.env
+.env.local
+.env.*.local
+
+# Prisma
+packages/db/prisma/*.db
+packages/db/prisma/*.db-journal
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea
+*.suo
+*.sw?
+
+# Project Planning Files
+Plan.md
+Task.txt
+task.md
+implementation_plan.md
