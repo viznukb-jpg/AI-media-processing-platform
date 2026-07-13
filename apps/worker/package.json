@@ -9,16 +9,16 @@
     "dev": "ts-node src/index.ts"
   },
   "dependencies": {
-    "bullmq": "^5.0.0",
-    "ioredis": "^5.0.0",
     "@aws-sdk/client-s3": "^3.0.0",
-    "sharp": "^0.33.0",
+    "@repo/db": "file:../../packages/db",
+    "bullmq": "^5.0.0",
     "dotenv": "^16.0.0",
-    "@repo/db": "file:../../packages/db"
+    "ioredis": "^5.0.0",
+    "sharp": "^0.33.0"
   },
   "devDependencies": {
-    "typescript": "^5.0.0",
+    "@types/node": "^20.19.43",
     "ts-node": "^10.9.0",
-    "@types/node": "^20.0.0"
+    "typescript": "^5.0.0"
   }
 }

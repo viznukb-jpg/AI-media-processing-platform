@@ -44,7 +44,7 @@ export default function LoginScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{isLogin ? "Login" : "Register"}</Text>
-      
+
       {!isLogin && (
         <TextInput
           style={styles.input}
@@ -53,7 +53,7 @@ export default function LoginScreen() {
           onChangeText={setName}
         />
       )}
-      
+
       <TextInput
         style={styles.input}
         placeholder="Email"
@@ -62,7 +62,7 @@ export default function LoginScreen() {
         autoCapitalize="none"
         keyboardType="email-address"
       />
-      
+
       <TextInput
         style={styles.input}
         placeholder="Password"
@@ -70,11 +70,11 @@ export default function LoginScreen() {
         onChangeText={setPassword}
         secureTextEntry
       />
-      
+
       <View style={styles.buttonContainer}>
         <Button title={isLogin ? "Sign In" : "Sign Up"} onPress={handleAuth} />
       </View>
-      
+
       <Button
         title={`Switch to ${isLogin ? "Register" : "Login"}`}
         onPress={() => setIsLogin(!isLogin)}
@@ -86,7 +86,18 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, justifyContent: "center" },
-  title: { fontSize: 24, fontWeight: "bold", marginBottom: 20, textAlign: "center" },
-  input: { borderWidth: 1, borderColor: "#ccc", padding: 10, marginBottom: 15, borderRadius: 5 },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    padding: 10,
+    marginBottom: 15,
+    borderRadius: 5,
+  },
   buttonContainer: { marginBottom: 10 },
 });
