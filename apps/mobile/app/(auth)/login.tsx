@@ -1,13 +1,16 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, Button, StyleSheet, Alert } from "react-native";
+import { View, Text, TextInput, StyleSheet, Alert, TouchableOpacity } from "react-native";
 import { signIn, signUp } from "../../utils/auth-client";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
   const [isLogin, setIsLogin] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
   const handleAuth = async () => {
@@ -24,6 +27,11 @@ export default function LoginScreen() {
           router.replace("/");
         }
       } else {
+        if (password !== confirmPassword) {
+          Alert.alert("Registration Failed", "Passwords do not match");
+          return;
+        }
+
         const { data, error } = await signUp.email({
           email,
           password,
@@ -63,23 +71,45 @@ export default function LoginScreen() {
         keyboardType="email-address"
       />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-
-      <View style={styles.buttonContainer}>
-        <Button title={isLogin ? "Sign In" : "Sign Up"} onPress={handleAuth} />
+      <View style={styles.passwordContainer}>
+        <TextInput
+          style={styles.passwordInput}
+          placeholder="Password"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry={!showPassword}
+          textContentType="oneTimeCode"
+          autoCorrect={false}
+        />
+        <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+          <Ionicons name={showPassword ? "eye" : "eye-off"} size={24} color="gray" />
+        </TouchableOpacity>
       </View>
 
-      <Button
-        title={`Switch to ${isLogin ? "Register" : "Login"}`}
-        onPress={() => setIsLogin(!isLogin)}
-        color="gray"
-      />
+      {!isLogin && (
+        <View style={styles.passwordContainer}>
+          <TextInput
+            style={styles.passwordInput}
+            placeholder="Confirm Password"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry={!showPassword}
+            textContentType="oneTimeCode"
+            autoCorrect={false}
+          />
+          <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+            <Ionicons name={showPassword ? "eye" : "eye-off"} size={24} color="gray" />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      <TouchableOpacity style={styles.primaryButton} onPress={handleAuth}>
+        <Text style={styles.primaryButtonText}>{isLogin ? "Sign In" : "Sign Up"}</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.secondaryButton} onPress={() => setIsLogin(!isLogin)}>
+        <Text style={styles.secondaryButtonText}>{`Switch to ${isLogin ? "Register" : "Login"}`}</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -98,6 +128,42 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 15,
     borderRadius: 5,
+    backgroundColor: "white",
   },
-  buttonContainer: { marginBottom: 10 },
+  passwordContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 5,
+    marginBottom: 15,
+    backgroundColor: "white",
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 10,
+  },
+  eyeIcon: {
+    padding: 10,
+  },
+  primaryButton: {
+    backgroundColor: "#007BFF",
+    padding: 15,
+    borderRadius: 8,
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  primaryButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  secondaryButton: {
+    padding: 15,
+    alignItems: "center",
+  },
+  secondaryButtonText: {
+    color: "#007BFF",
+    fontSize: 16,
+  },
 });

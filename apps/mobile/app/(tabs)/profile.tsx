@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, Button, Alert } from "react-native";
+import { View, Text, StyleSheet, Alert, TouchableOpacity } from "react-native";
 import { useSession, signOut } from "../../utils/auth-client";
 import { useRouter } from "expo-router";
 
@@ -30,7 +30,9 @@ export default function ProfileScreen() {
         </View>
       )}
 
-      <Button title="Logout" onPress={handleLogout} color="red" />
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        <Text style={styles.logoutButtonText}>Logout</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -41,4 +43,16 @@ const styles = StyleSheet.create({
   infoContainer: { width: "100%", backgroundColor: "white", padding: 20, borderRadius: 10, marginBottom: 30, elevation: 2, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 2 },
   label: { fontSize: 14, color: "gray", marginBottom: 5 },
   value: { fontSize: 18, fontWeight: "500", marginBottom: 15 },
+  logoutButton: {
+    backgroundColor: "#FF3B30",
+    padding: 15,
+    borderRadius: 8,
+    alignItems: "center",
+    width: "100%",
+  },
+  logoutButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
 });
