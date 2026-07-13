@@ -1,4 +1,7 @@
 {
   "name": "ai-media-platform",
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "devDependencies": {
+    "@types/node": "^26.1.1"
+  }
 }
