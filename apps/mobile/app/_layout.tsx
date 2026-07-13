@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useSession } from "../utils/auth-client";
+import { useSession } from "@/features/auth/auth-client";
 import { useEffect } from "react";
 import { useRouter, useSegments } from "expo-router";
 

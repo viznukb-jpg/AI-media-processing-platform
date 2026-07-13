@@ -1,0 +1,94 @@
+import { useState } from 'react';
+import { Alert } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import axios from 'axios';
+import { useRouter } from 'expo-router';
+import { requestUploadUrl, createJob } from '../api/upload.api';
+
+export const useMediaUpload = () => {
+  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const router = useRouter();
+
+  const pickImage = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (permissionResult.granted === false) {
+      Alert.alert("Permission required", "You need to allow access to your photos to upload media.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setImageUri(result.assets[0].uri);
+    }
+  };
+
+  const upload = async () => {
+    if (!imageUri) return;
+    
+    setIsUploading(true);
+    setProgress(0);
+
+    try {
+      const fileName = imageUri.split('/').pop() || 'upload.jpg';
+      const contentType = "image/jpeg";
+
+      const urlData = await requestUploadUrl(fileName, contentType);
+
+      if (!urlData?.uploadUrl) {
+        throw new Error("Failed to get upload URL");
+      }
+
+      const response = await fetch(imageUri);
+      const blob = await response.blob();
+
+      await axios.put(urlData.uploadUrl, blob, {
+        headers: { "Content-Type": contentType },
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setProgress(percentCompleted);
+          }
+        },
+      });
+
+      const jobData = await createJob(urlData.key);
+
+      if (!jobData?.job) {
+        throw new Error("Failed to create job");
+      }
+
+      Alert.alert("Success", "Media uploaded and job queued!");
+      setImageUri(null);
+      router.push(`/job/${jobData.job.id}`);
+      
+    } catch (err: any) {
+      console.error(err);
+      Alert.alert("Upload Error", err.message || "An unexpected error occurred");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const reset = () => {
+    setImageUri(null);
+    setProgress(0);
+    setIsUploading(false);
+  };
+
+  return {
+    imageUri,
+    isUploading,
+    progress,
+    pickImage,
+    upload,
+    reset,
+  };
+};
