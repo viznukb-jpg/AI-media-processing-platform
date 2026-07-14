@@ -79,7 +79,7 @@ export async function DELETE(
     await prisma.job.delete({ where: { id } });
 
     // Try to delete files from S3 if they exist
-    const bucket = process.env.S3_BUCKET_NAME || "ai-media-platform-dev";
+    const bucket = process.env.AWS_S3_BUCKET_NAME || "ai-media-platform-dev";
     
     if (job.originalUrl) {
       try {

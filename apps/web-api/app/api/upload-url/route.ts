@@ -41,7 +41,7 @@ export async function POST(req: Request) {
     const key = `uploads/${session.user.id}/${uniqueId}.${ext}`;
 
     const command = new PutObjectCommand({
-      Bucket: process.env.S3_BUCKET_NAME || "ai-media-platform-dev",
+      Bucket: process.env.AWS_S3_BUCKET_NAME || "ai-media-platform-dev",
       Key: key,
       ContentType: contentType,
     });

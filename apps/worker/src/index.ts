@@ -1,5 +1,4 @@
-import dotenv from "dotenv";
-dotenv.config();
+import "./env";
 
 import { Worker, Job as BullJob } from "bullmq";
 import { connection, prisma, JobStatus } from "@repo/db";
@@ -34,7 +33,7 @@ const streamToBuffer = async (stream: Readable): Promise<Buffer> => {
   });
 };
 
-const bucketName = process.env.S3_BUCKET_NAME || "ai-media-platform-dev";
+const bucketName = process.env.AWS_S3_BUCKET_NAME || "ai-media-platform-dev";
 
 const worker = new Worker(
   "media-processing",

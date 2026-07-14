@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import axios from 'axios';
+import * as FileSystem from 'expo-file-system/legacy';
 import { useRouter } from 'expo-router';
 import { requestUploadUrl, createJob } from '../api/upload.api';
 
@@ -46,18 +46,26 @@ export const useMediaUpload = () => {
         throw new Error("Failed to get upload URL");
       }
 
-      const response = await fetch(imageUri);
-      const blob = await response.blob();
-
-      await axios.put(urlData.uploadUrl, blob, {
-        headers: { "Content-Type": contentType },
-        onUploadProgress: (progressEvent) => {
-          if (progressEvent.total) {
-            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+      const uploadTask = FileSystem.createUploadTask(
+        urlData.uploadUrl,
+        imageUri,
+        {
+          httpMethod: 'PUT',
+          headers: { 'Content-Type': contentType },
+        },
+        (progressEvent) => {
+          if (progressEvent.totalBytesExpectedToSend) {
+            const percentCompleted = Math.round((progressEvent.totalBytesSent * 100) / progressEvent.totalBytesExpectedToSend);
             setProgress(percentCompleted);
           }
-        },
-      });
+        }
+      );
+
+      const response = await uploadTask.uploadAsync();
+      
+      if (response?.status !== 200) {
+        throw new Error(`Upload failed with status ${response?.status}`);
+      }
 
       const jobData = await createJob(urlData.key);
 
