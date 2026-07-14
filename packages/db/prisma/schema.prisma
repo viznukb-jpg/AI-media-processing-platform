@@ -45,6 +45,8 @@ model Job {
   error        String?
   events       JobEvent[]
   createdAt    DateTime   @default(now())
+
+  @@index([userId])
 }
 
 model JobEvent {
@@ -54,6 +56,8 @@ model JobEvent {
   status    JobStatus
   message   String?
   timestamp DateTime  @default(now())
+
+  @@index([jobId])
 }
 
 model Session {

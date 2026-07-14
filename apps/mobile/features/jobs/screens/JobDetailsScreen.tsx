@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Image, Alert, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useJobQuery } from '../hooks/useJobQuery';
+import { deleteJob } from '../api/jobs.api';
 import { JobTimeline } from '../components/JobTimeline';
 import { ScreenContainer } from '@/shared/components/ScreenContainer';
 import { StatusBadge } from '@/shared/components/StatusBadge';
@@ -73,7 +74,6 @@ export const JobDetailsScreen = ({ id }: Props) => {
                     style: "destructive",
                     onPress: async () => {
                       try {
-                        const { deleteJob } = await import('../api/jobs.api');
                         await deleteJob(job.id);
                         router.replace("/(tabs)/home");
                       } catch (err: any) {

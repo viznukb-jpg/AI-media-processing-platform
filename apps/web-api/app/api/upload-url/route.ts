@@ -1,11 +1,6 @@
 import { NextResponse } from "next/server";
-import { s3Client } from "@/lib/s3";
-import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import crypto from "crypto";
-
+import { withAuth } from "@/lib/auth-middleware";
+import { S3Service } from "@/services/s3.service";
 import { z } from "zod";
 
 const UploadSchema = z.object({
@@ -13,43 +8,22 @@ const UploadSchema = z.object({
   contentType: z.string().min(1, "Content type is required").regex(/^(image|video)\/.+$/, "Invalid content type"),
 });
 
-export async function POST(req: Request) {
+export const POST = withAuth(async (req, session) => {
+  const body = await req.json();
+  const parseResult = UploadSchema.safeParse(body);
+
+  if (!parseResult.success) {
+    return NextResponse.json(
+      { error: parseResult.error.errors[0].message },
+      { status: 400 }
+    );
+  }
+
+  const { filename, contentType } = parseResult.data;
+
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const body = await req.json();
-    const parseResult = UploadSchema.safeParse(body);
-
-    if (!parseResult.success) {
-      return NextResponse.json(
-        { error: parseResult.error.errors[0].message },
-        { status: 400 }
-      );
-    }
-
-    const { filename, contentType } = parseResult.data;
-
-    // Generate unique key for S3
-    const ext = filename.split(".").pop();
-    const uniqueId = crypto.randomUUID();
-    const key = `uploads/${session.user.id}/${uniqueId}.${ext}`;
-
-    const command = new PutObjectCommand({
-      Bucket: process.env.AWS_S3_BUCKET_NAME || "ai-media-platform-dev",
-      Key: key,
-      ContentType: contentType,
-    });
-
-    // URL expires in 1 hour
-    const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-
-    return NextResponse.json({ uploadUrl: presignedUrl, key });
+    const { url, key } = await S3Service.generateUploadUrl(session.user.id, filename, contentType);
+    return NextResponse.json({ uploadUrl: url, key });
   } catch (error) {
     console.error("Error generating presigned URL:", error);
     return NextResponse.json(
@@ -57,4 +31,4 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
-}
+});

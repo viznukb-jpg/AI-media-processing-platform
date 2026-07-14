@@ -20,7 +20,7 @@ export const useMediaUpload = () => {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+      mediaTypes: ['images', 'videos'],
       allowsEditing: true,
       quality: 1,
     });
@@ -38,7 +38,16 @@ export const useMediaUpload = () => {
 
     try {
       const fileName = imageUri.split('/').pop() || 'upload.jpg';
-      const contentType = "image/jpeg";
+      const ext = fileName.split('.').pop()?.toLowerCase();
+      
+      let contentType = 'application/octet-stream';
+      if (ext === 'jpg' || ext === 'jpeg') contentType = 'image/jpeg';
+      else if (ext === 'png') contentType = 'image/png';
+      else if (ext === 'heic') contentType = 'image/heic';
+      else if (ext === 'mp4') contentType = 'video/mp4';
+      else if (ext === 'mov') contentType = 'video/quicktime';
+      else if (ext === 'avi') contentType = 'video/x-msvideo';
+      else if (ext === 'webm') contentType = 'video/webm';
 
       const urlData = await requestUploadUrl(fileName, contentType);
 

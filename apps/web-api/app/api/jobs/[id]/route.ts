@@ -1,119 +1,37 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@repo/db";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { s3Client } from "@/lib/s3";
-import { DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { withAuth } from "@/lib/auth-middleware";
+import { JobService } from "@/services/job.service";
 
-export async function GET(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export const GET = withAuth(async (req, session, context) => {
+  const { id } = await context.params;
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { id } = await params;
-
-    const job = await prisma.job.findUnique({
-      where: { id },
-      include: {
-        events: {
-          orderBy: { timestamp: "asc" },
-        },
-      },
-    });
-
-    if (!job) {
-      return NextResponse.json({ error: "Job not found" }, { status: 404 });
-    }
-
-    if (job.userId !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    let signedProcessedUrl = null;
-    if (job.status === "completed" && job.processedUrl) {
-      const bucket = process.env.AWS_S3_BUCKET_NAME || "ai-media-platform-dev";
-      const getObjectCommand = new GetObjectCommand({
-        Bucket: bucket,
-        Key: job.processedUrl,
-      });
-      signedProcessedUrl = await getSignedUrl(s3Client, getObjectCommand, { expiresIn: 3600 });
-    }
-
-    return NextResponse.json({ job: { ...job, signedProcessedUrl } });
-  } catch (error) {
+    const job = await JobService.getJobDetails(session.user.id, id);
+    return NextResponse.json({ job });
+  } catch (error: any) {
     console.error("Error fetching job details:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch job details" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { id } = await params;
-
-    const job = await prisma.job.findUnique({
-      where: { id },
-    });
-
-    if (!job) {
+    if (error.message === "Job not found") {
       return NextResponse.json({ error: "Job not found" }, { status: 404 });
     }
-
-    if (job.userId !== session.user.id) {
+    if (error.message === "Forbidden") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-
-    // Delete related events and the job
-    await prisma.jobEvent.deleteMany({ where: { jobId: id } });
-    await prisma.job.delete({ where: { id } });
-
-    // Try to delete files from S3 if they exist
-    const bucket = process.env.AWS_S3_BUCKET_NAME || "ai-media-platform-dev";
-    
-    if (job.originalUrl) {
-      try {
-        await s3Client.send(new DeleteObjectCommand({ Bucket: bucket, Key: job.originalUrl }));
-      } catch (err) {
-        console.error(`Failed to delete original file ${job.originalUrl} from S3`);
-      }
-    }
-
-    if (job.processedUrl) {
-      try {
-        await s3Client.send(new DeleteObjectCommand({ Bucket: bucket, Key: job.processedUrl }));
-      } catch (err) {
-        console.error(`Failed to delete processed file ${job.processedUrl} from S3`);
-      }
-    }
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Error deleting job:", error);
-    return NextResponse.json(
-      { error: "Failed to delete job" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch job details" }, { status: 500 });
   }
-}
+});
+
+export const DELETE = withAuth(async (req, session, context) => {
+  const { id } = await context.params;
+  try {
+    await JobService.deleteJob(session.user.id, id);
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error("Error deleting job:", error);
+    if (error.message === "Job not found") {
+      return NextResponse.json({ error: "Job not found" }, { status: 404 });
+    }
+    if (error.message === "Forbidden") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    return NextResponse.json({ error: "Failed to delete job" }, { status: 500 });
+  }
+});

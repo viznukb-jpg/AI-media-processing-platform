@@ -9,14 +9,11 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1085.0",
-    "@aws-sdk/s3-request-presigner": "^3.1085.0",
     "@repo/db": "file:../../packages/db",
-    "bcryptjs": "^3.0.3",
+    "@repo/s3": "file:../../packages/s3",
     "better-auth": "^1.6.23",
     "bullmq": "^5.80.2",
     "ioredis": "^5.11.1",
-    "jsonwebtoken": "^9.0.3",
     "next": "16.2.10",
     "react": "19.1.0",
     "react-dom": "19.1.0",
@@ -24,8 +21,6 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/bcryptjs": "^2.4.6",
-    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

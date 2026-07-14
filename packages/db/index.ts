@@ -20,4 +20,10 @@ export const connection = new IORedis(process.env.REDIS_URL || "redis://127.0.0.
   maxRetriesPerRequest: null,
 });
 
-export const mediaQueue = new Queue("media-processing", { connection: connection as any });
+export const mediaQueue = new Queue("media-processing", { 
+  connection: connection as any,
+  defaultJobOptions: {
+    removeOnComplete: true,
+    removeOnFail: false,
+  }
+});

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@repo/db";
+import { withAuth } from "@/lib/auth-middleware";
 
-export async function GET() {
+export const GET = withAuth(async (req, session) => {
   try {
     const jobStats = await prisma.job.groupBy({
       by: ['status'],
@@ -29,4 +30,4 @@ export async function GET() {
       { status: 500 }
     );
   }
-}
+});
