@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useSession, signOut } from '../../auth/auth-client';
+import { useSession, signOut, authClient, apiFetch } from '../../auth/auth-client';
 import { ScreenContainer } from '@/shared/components/ScreenContainer';
 import { Button } from '@/shared/components/Button';
 import { colors } from '@/shared/theme/colors';
@@ -10,13 +10,50 @@ export const ProfileScreen = () => {
   const { data: session } = useSession();
   const router = useRouter();
 
-  const handleLogout = async () => {
-    try {
-      await signOut();
-      router.replace("/(auth)/login");
-    } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to log out");
-    }
+  const handleLogout = () => {
+    Alert.alert(
+      "Confirm Logout",
+      "Are you sure you want to log out?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Logout", 
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await signOut();
+              router.replace("/(auth)/login");
+            } catch (error: any) {
+              Alert.alert("Error", error.message || "Failed to log out");
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      "Delete Account",
+      "Are you absolutely sure you want to delete your account? This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete", 
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await apiFetch('/api/user/delete', { method: 'DELETE' });
+              // Also call signOut locally to make sure SecureStore is cleared
+              try { await signOut(); } catch (e) {}
+              router.replace("/(auth)/login");
+            } catch (error: any) {
+              Alert.alert("Error", error.message || "Failed to delete account");
+            }
+          }
+        }
+      ]
+    );
   };
 
   return (
@@ -37,6 +74,12 @@ export const ProfileScreen = () => {
         <Button 
           title="Logout" 
           onPress={handleLogout} 
+          style={{ width: '100%', marginBottom: 15 }}
+        />
+        
+        <Button 
+          title="Delete Account" 
+          onPress={handleDeleteAccount} 
           variant="danger" 
           style={{ width: '100%' }}
         />

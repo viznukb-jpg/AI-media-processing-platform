@@ -2,6 +2,15 @@
   "name": "ai-media-platform",
   "version": "1.0.0",
   "devDependencies": {
-    "@types/node": "^26.1.1"
+    "@types/node": "^26.1.1",
+    "concurrently": "^10.0.3"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "overrides": {
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
   }
 }

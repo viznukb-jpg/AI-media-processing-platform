@@ -28,7 +28,6 @@ export const LoginScreen = () => {
         if (error) {
           Alert.alert("Login Failed", error.message);
         } else {
-          Alert.alert("Success", "Logged in successfully!");
           router.replace("/");
         }
       } else {
@@ -45,7 +44,6 @@ export const LoginScreen = () => {
         if (error) {
           Alert.alert("Registration Failed", error.message);
         } else {
-          Alert.alert("Success", "Registered successfully!");
           router.replace("/");
         }
       }
