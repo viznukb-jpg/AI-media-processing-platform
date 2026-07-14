@@ -12,14 +12,24 @@ export const GET = withAuth(async (req, session) => {
     });
 
     const totalJobs = await prisma.job.count();
+    const totalUsers = await prisma.user.count();
     
     // Format the response
+    const statusBreakdown = jobStats.reduce((acc, curr) => {
+      acc[curr.status] = curr._count._all;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const activeJobs = (statusBreakdown['queued'] || 0) + 
+                       (statusBreakdown['downloading'] || 0) + 
+                       (statusBreakdown['analyzing'] || 0) + 
+                       (statusBreakdown['generating_thumbnail'] || 0);
+
     const metrics = {
       total: totalJobs,
-      statusBreakdown: jobStats.reduce((acc, curr) => {
-        acc[curr.status] = curr._count._all;
-        return acc;
-      }, {} as Record<string, number>),
+      totalUsers,
+      activeJobs,
+      statusBreakdown,
     };
 
     return NextResponse.json(metrics);

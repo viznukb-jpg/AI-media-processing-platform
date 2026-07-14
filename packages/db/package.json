@@ -9,9 +9,14 @@
     "push": "prisma db push"
   },
   "dependencies": {
-    "@prisma/client": "^6.19.3",
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
     "bullmq": "^5.0.0",
     "ioredis": "^5.0.0",
-    "prisma": "^6.19.3"
+    "pg": "^8.22.0",
+    "prisma": "^7.8.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.20.0"
   }
 }

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, ActivityIndicator } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useMediaUpload } from '../hooks/useMediaUpload';
 import { ScreenContainer } from '@/shared/components/ScreenContainer';
 import { Button } from '@/shared/components/Button';

@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import { View, Text, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
 import { useSession, signOut, authClient, apiFetch } from '../../auth/auth-client';
 import { ScreenContainer } from '@/shared/components/ScreenContainer';
 import { Button } from '@/shared/components/Button';
