@@ -32,6 +32,7 @@ if (globalForPrisma.prisma) {
 export const prisma = prismaInstance;
 
 export * from "@prisma/client";
+export * from "./types";
 
 // Redis and Queue initialization
 export const connection = new IORedis(process.env.REDIS_URL || "redis://127.0.0.1:6379", {
@@ -47,5 +48,9 @@ export const mediaQueue = new Queue("media-processing", {
 });
 
 export const dlqQueue = new Queue("dlq", {
+  connection: connection as any,
+});
+
+export const cleanupQueue = new Queue("cleanup", {
   connection: connection as any,
 });

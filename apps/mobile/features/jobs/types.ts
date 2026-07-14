@@ -22,3 +22,8 @@ export type Job = {
   events?: JobEvent[]; // optional because home doesn't fetch it
   createdAt: string;
 };
+
+export interface JobDetailsResponse extends Job {
+  events: JobEvent[];
+  signedProcessedUrl: string | null;
+}

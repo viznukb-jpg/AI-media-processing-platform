@@ -1,12 +1,24 @@
-import { prisma, mediaQueue } from "@repo/db";
+import { prisma, mediaQueue, JobDetailsResponse, cleanupQueue } from "@repo/db";
 import { S3Service } from "./s3.service";
-import { NotFoundError, ForbiddenError, UnauthorizedS3KeyError } from "@/lib/errors";
+import {
+  NotFoundError,
+  ForbiddenError,
+  UnauthorizedS3KeyError,
+  ValidationError,
+} from "@/lib/errors";
+import { logger } from "@repo/logger";
 
 export class JobService {
-  private static async findJobOrThrow(userId: string, jobId: string, options?: { includeEvents?: boolean }) {
+  private static async findJobOrThrow(
+    userId: string,
+    jobId: string,
+    options?: { includeEvents?: boolean },
+  ) {
     const job = await prisma.job.findUnique({
       where: { id: jobId },
-      include: options?.includeEvents ? { events: { orderBy: { timestamp: "asc" } } } : undefined,
+      include: options?.includeEvents
+        ? { events: { orderBy: { timestamp: "asc" } } }
+        : undefined,
     });
 
     if (!job) throw new NotFoundError("Job not found");
@@ -20,6 +32,11 @@ export class JobService {
       throw new UnauthorizedS3KeyError();
     }
 
+    const exists = await S3Service.fileExists(originalUrl);
+    if (!exists) {
+      throw new ValidationError("Uploaded file not found in storage");
+    }
+
     const job = await prisma.job.create({
       data: {
         userId,
@@ -28,17 +45,21 @@ export class JobService {
       },
     });
 
-    await mediaQueue.add("process-media", {
-      jobId: job.id,
-      originalUrl,
-      userId,
-    }, {
-      attempts: 3,
-      backoff: {
-        type: "exponential",
-        delay: 2000,
+    await mediaQueue.add(
+      "process-media",
+      {
+        jobId: job.id,
+        originalUrl,
+        userId,
       },
-    });
+      {
+        attempts: 3,
+        backoff: {
+          type: "exponential",
+          delay: 2000,
+        },
+      },
+    );
 
     return job;
   }
@@ -52,39 +73,57 @@ export class JobService {
     });
   }
 
-  static async getJobDetails(userId: string, jobId: string) {
-    const job = await this.findJobOrThrow(userId, jobId, { includeEvents: true });
+  static async getJobDetails(userId: string, jobId: string): Promise<JobDetailsResponse> {
+    const job = await this.findJobOrThrow(userId, jobId, {
+      includeEvents: true,
+    });
+
+    // Check if the file still exists in S3 (in case of manual deletion)
+    const exists = await S3Service.fileExists(job.originalUrl);
+    if (!exists) {
+      // Auto-cleanup DB if S3 file is missing
+      await prisma.job.delete({ where: { id: jobId } });
+      throw new NotFoundError("Job file no longer exists in storage");
+    }
 
     let signedProcessedUrl = null;
     if (job.status === "completed" && job.processedUrl) {
-      signedProcessedUrl = await S3Service.generateDownloadUrl(job.processedUrl);
+      const processedExists = await S3Service.fileExists(job.processedUrl);
+      if (processedExists) {
+        signedProcessedUrl = await S3Service.generateDownloadUrl(job.processedUrl);
+      }
     }
 
-    return { ...job, signedProcessedUrl };
+    // Cast needed because findJobOrThrow doesn't strictly guarantee includeEvents in the generic return type of Prisma yet
+    return { ...(job as JobDetailsResponse), signedProcessedUrl };
   }
 
   static async deleteJob(userId: string, jobId: string) {
     const job = await this.findJobOrThrow(userId, jobId);
 
-    // Delete S3 files first, log any failures, then delete DB record
-    const s3Results = await Promise.allSettled([
-      job.originalUrl ? S3Service.deleteFile(job.originalUrl) : Promise.resolve(),
-      job.processedUrl ? S3Service.deleteFile(job.processedUrl) : Promise.resolve(),
-    ]);
+    // Delete DB record first (Rely on Prisma Cascade for JobEvents)
+    await prisma.job.delete({ where: { id: jobId } });
 
-    for (const result of s3Results) {
-      if (result.status === "rejected") {
-        console.error(JSON.stringify({
-          level: "error",
-          event: "ORPHANED_S3_FILE",
-          jobId,
-          error: result.reason?.message || "Unknown S3 deletion error",
-          timestamp: new Date().toISOString(),
-        }));
+    // Try deleting S3 files, if it fails add to cleanup queue
+    const keysToDelete = [job.originalUrl, job.processedUrl].filter(Boolean) as string[];
+
+    for (const key of keysToDelete) {
+      try {
+        await S3Service.deleteFile(key);
+      } catch (err: any) {
+        logger.warn("S3_DELETE_FAILED_ADDING_TO_QUEUE", { key, error: err.message });
+        await cleanupQueue.add(
+          "delete-s3-file",
+          { key },
+          {
+            attempts: 5,
+            backoff: {
+              type: "exponential",
+              delay: 5000,
+            },
+          }
+        );
       }
     }
-
-    // Rely on Prisma Cascade to delete JobEvents automatically
-    await prisma.job.delete({ where: { id: jobId } });
   }
 }

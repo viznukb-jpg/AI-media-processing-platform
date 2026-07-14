@@ -1,28 +1,29 @@
 import { useState } from 'react';
-import { Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
-import { useRouter } from 'expo-router';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { requestUploadUrl, createJob } from '../api/upload.api';
+import { getContentTypeFromFilename } from '../../../shared/utils/media-type.util';
 
 export const useMediaUpload = () => {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
 
   const pickImage = async () => {
+    setError(null);
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
     if (permissionResult.granted === false) {
-      Alert.alert("Permission required", "You need to allow access to your photos to upload media.");
+      setError("Permission required: You need to allow access to your photos to upload media.");
       return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images', 'videos'],
-      allowsEditing: true,
-      quality: 1,
+      allowsEditing: false,
+      quality: 1, // Will compress later if image
     });
 
     if (!result.canceled) {
@@ -31,26 +32,30 @@ export const useMediaUpload = () => {
   };
 
   const upload = async () => {
-    if (!imageUri) return;
+    if (!imageUri) return null;
     
     setIsUploading(true);
     setProgress(0);
+    setError(null);
 
     try {
       const fileName = imageUri.split('/').pop() || 'upload.jpg';
-      const ext = fileName.split('.').pop()?.toLowerCase();
+      const contentType = getContentTypeFromFilename(fileName);
       
-      let contentType = 'application/octet-stream';
-      if (ext === 'jpg' || ext === 'jpeg') contentType = 'image/jpeg';
-      else if (ext === 'png') contentType = 'image/png';
-      else if (ext === 'heic') contentType = 'image/heic';
-      else if (ext === 'mp4') contentType = 'video/mp4';
-      else if (ext === 'mov') contentType = 'video/quicktime';
-      else if (ext === 'avi') contentType = 'video/x-msvideo';
-      else if (ext === 'webm') contentType = 'video/webm';
+      let finalUri = imageUri;
+      
+      // Optimize image
+      if (contentType.startsWith('image/')) {
+        const manipResult = await ImageManipulator.manipulateAsync(
+          imageUri,
+          [{ resize: { width: 1920 } }], // Resize longest side, maintain aspect ratio
+          { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+        );
+        finalUri = manipResult.uri;
+      }
 
       // Get file size for server-side validation
-      const fileInfo = await FileSystem.getInfoAsync(imageUri);
+      const fileInfo = await FileSystem.getInfoAsync(finalUri);
       if (!fileInfo.exists || !('size' in fileInfo)) {
         throw new Error("Could not read file info");
       }
@@ -64,10 +69,12 @@ export const useMediaUpload = () => {
 
       const uploadTask = FileSystem.createUploadTask(
         urlData.uploadUrl,
-        imageUri,
+        finalUri,
         {
-          httpMethod: 'PUT',
-          headers: { 'Content-Type': contentType },
+          httpMethod: 'POST',
+          uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+          fieldName: 'file',
+          parameters: urlData.fields || {},
         },
         (progressEvent) => {
           if (progressEvent.totalBytesExpectedToSend) {
@@ -79,7 +86,7 @@ export const useMediaUpload = () => {
 
       const response = await uploadTask.uploadAsync();
       
-      if (response?.status !== 200) {
+      if (response?.status !== 200 && response?.status !== 204) {
         throw new Error(`Upload failed with status ${response?.status}`);
       }
 
@@ -89,13 +96,12 @@ export const useMediaUpload = () => {
         throw new Error("Failed to create job");
       }
 
-      Alert.alert("Success", "Media uploaded and job queued!");
       setImageUri(null);
-      router.push(`/job/${jobData.job.id}`);
+      return jobData.job.id;
       
     } catch (err: any) {
-      console.error(err);
-      Alert.alert("Upload Error", err.message || "An unexpected error occurred");
+      setError(err.message || "An unexpected error occurred");
+      return null;
     } finally {
       setIsUploading(false);
     }
@@ -105,12 +111,14 @@ export const useMediaUpload = () => {
     setImageUri(null);
     setProgress(0);
     setIsUploading(false);
+    setError(null);
   };
 
   return {
     imageUri,
     isUploading,
     progress,
+    error,
     pickImage,
     upload,
     reset,

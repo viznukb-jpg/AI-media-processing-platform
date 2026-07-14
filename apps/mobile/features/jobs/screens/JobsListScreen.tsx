@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { FlatList, ActivityIndicator, Text } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useJobsQuery } from '../hooks/useJobsQuery';
@@ -7,10 +7,19 @@ import { ScreenContainer } from '@/shared/components/ScreenContainer';
 import { EmptyState } from '@/shared/components/EmptyState';
 import { Button } from '@/shared/components/Button';
 import { colors } from '@/shared/theme/colors';
+import { Job } from '../types';
 
 export const JobsListScreen = () => {
   const router = useRouter();
-  const { data: jobs, isLoading, error, refetch } = useJobsQuery();
+  const { 
+    data, 
+    isLoading, 
+    error, 
+    refetch, 
+    fetchNextPage, 
+    hasNextPage, 
+    isFetchingNextPage 
+  } = useJobsQuery();
 
   useFocusEffect(
     useCallback(() => {
@@ -18,7 +27,23 @@ export const JobsListScreen = () => {
     }, [refetch])
   );
 
-  if (isLoading) {
+  const jobs = useMemo(() => {
+    if (!data) return [];
+    return data.pages.flat();
+  }, [data]);
+
+  const renderFooter = () => {
+    if (!isFetchingNextPage) return null;
+    return <ActivityIndicator style={{ margin: 20 }} size="small" color={colors.primary} />;
+  };
+
+  const handleEndReached = () => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  };
+
+  if (isLoading && !data) {
     return (
       <ScreenContainer center>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -41,13 +66,16 @@ export const JobsListScreen = () => {
     <ScreenContainer>
       <FlatList
         data={jobs}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item: Job) => item.id}
         renderItem={({ item }) => (
           <JobCard job={item} onPress={(id) => router.push(`/job/${id}`)} />
         )}
         contentContainerStyle={{ padding: 16 }}
-        refreshing={isLoading}
+        refreshing={isLoading && !isFetchingNextPage}
         onRefresh={refetch}
+        onEndReached={handleEndReached}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={renderFooter}
         ListEmptyComponent={<EmptyState message="No jobs found. Upload some media!" />}
       />
     </ScreenContainer>

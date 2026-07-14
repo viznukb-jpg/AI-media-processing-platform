@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@repo/db';
 import { withAuth } from '@/lib/auth-middleware';
 import { S3Service } from '@/services/s3.service';
+import { logger } from "@repo/logger";
 
 export const DELETE = withAuth(async (req, session) => {
   try {
@@ -17,7 +18,7 @@ export const DELETE = withAuth(async (req, session) => {
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error('Delete user error:', error);
+    logger.error('DELETE_USER_FAILED', { error: error.message, userId: session.user.id });
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 });

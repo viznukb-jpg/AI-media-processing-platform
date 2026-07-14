@@ -1,14 +1,21 @@
-import React from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Image, Alert, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useJobQuery } from '../hooks/useJobQuery';
-import { deleteJob } from '../api/jobs.api';
-import { JobTimeline } from '../components/JobTimeline';
-import { ScreenContainer } from '@/shared/components/ScreenContainer';
-import { StatusBadge } from '@/shared/components/StatusBadge';
-import { ProgressBar } from '@/shared/components/ProgressBar';
-import { Button } from '@/shared/components/Button';
-import { colors } from '@/shared/theme/colors';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  Image,
+  Alert,
+  ScrollView,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { useJobQuery } from "../hooks/useJobQuery";
+import { deleteJob } from "../api/jobs.api";
+import { JobTimeline } from "../components/JobTimeline";
+import { ScreenContainer } from "@/shared/components/ScreenContainer";
+import { StatusBadge } from "@/shared/components/StatusBadge";
+import { ProgressBar } from "@/shared/components/ProgressBar";
+import { Button } from "@/shared/components/Button";
+import { colors } from "@/shared/theme/colors";
 
 type Props = {
   id: string;
@@ -51,40 +58,46 @@ export const JobDetailsScreen = ({ id }: Props) => {
           <Text style={styles.progressText}>{job.progress}% Completed</Text>
         </View>
 
-        {job.status === "completed" && (job as any).signedProcessedUrl && (
+        {job.status === "completed" && job.signedProcessedUrl && (
           <View style={styles.resultContainer}>
             <Text style={styles.resultTitle}>Result (Thumbnail):</Text>
-            <Image source={{ uri: (job as any).signedProcessedUrl }} style={styles.resultImage} />
+            <Image
+              source={{ uri: job.signedProcessedUrl }}
+              style={styles.resultImage}
+            />
           </View>
         )}
 
         {job.events && <JobTimeline events={job.events} />}
 
         <View style={{ padding: 20 }}>
-          <Button 
-            title="Delete Job" 
+          <Button
+            title="Delete Job"
             onPress={() => {
               Alert.alert(
                 "Delete Job",
                 "Are you sure you want to delete this job and all its files? This action cannot be undone.",
                 [
                   { text: "Cancel", style: "cancel" },
-                  { 
-                    text: "Delete", 
+                  {
+                    text: "Delete",
                     style: "destructive",
                     onPress: async () => {
                       try {
                         await deleteJob(job.id);
                         router.replace("/(tabs)/home");
                       } catch (err: any) {
-                        Alert.alert("Error", err.message || "Failed to delete job");
+                        Alert.alert(
+                          "Error",
+                          err.message || "Failed to delete job",
+                        );
                       }
-                    }
-                  }
-                ]
+                    },
+                  },
+                ],
               );
-            }} 
-            variant="danger" 
+            }}
+            variant="danger"
           />
         </View>
       </ScrollView>

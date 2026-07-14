@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@repo/db": "file:../../packages/db",
+    "@repo/logger": "^1.0.0",
     "@repo/s3": "file:../../packages/s3",
     "bullmq": "^5.80.2",
     "dotenv": "^16.0.0",

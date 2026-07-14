@@ -33,7 +33,7 @@ type RateLimitOptions = {
 
 type AuthenticatedHandler = (
   req: Request,
-  session: { user: { id: string; email: string; name: string; role: string } },
+  session: { user: { id: string; email: string; name: string } },
   context: any,
 ) => Promise<NextResponse> | NextResponse;
 

@@ -1,18 +1,18 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@repo/db";
 import { withAuth } from "@/lib/auth-middleware";
+import { logger } from "@repo/logger";
 
 export const GET = withAuth(async (req, session) => {
   try {
-    const jobStats = await prisma.job.groupBy({
-      by: ['status'],
-      _count: {
-        _all: true,
-      },
-    });
-
-    const totalJobs = await prisma.job.count();
-    const totalUsers = await prisma.user.count();
+    const [jobStats, totalJobs, totalUsers] = await Promise.all([
+      prisma.job.groupBy({
+        by: ['status'],
+        _count: { _all: true },
+      }),
+      prisma.job.count(),
+      prisma.user.count(),
+    ]);
     
     // Format the response
     const statusBreakdown = jobStats.reduce((acc, curr) => {
@@ -33,8 +33,8 @@ export const GET = withAuth(async (req, session) => {
     };
 
     return NextResponse.json(metrics);
-  } catch (error) {
-    console.error("Error fetching metrics:", error);
+  } catch (error: any) {
+    logger.error("FETCH_METRICS_FAILED", { error: error.message });
     return NextResponse.json(
       { error: "Failed to fetch metrics" },
       { status: 500 }

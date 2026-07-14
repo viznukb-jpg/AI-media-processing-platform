@@ -18,10 +18,16 @@ export const authClient = createAuthClient({
 export const { signIn, signUp, useSession, signOut } = authClient;
 
 export const apiFetch = async (endpoint: string, options?: RequestInit) => {
+  const headers = new Headers(options?.headers);
+  if (options?.method && ['POST', 'PUT', 'PATCH'].includes(options.method.toUpperCase()) && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+
   // Use authClient.$fetch with an absolute URL so it bypasses the /api/auth prefix
   // but still automatically attaches the session headers/cookies!
   const { data, error } = await authClient.$fetch<any>(`${env.apiBaseUrl}${endpoint}`, {
     ...options,
+    headers: Object.fromEntries(headers.entries()),
   });
 
   if (error) {

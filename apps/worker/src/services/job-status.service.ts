@@ -9,13 +9,15 @@ export class JobStatusService {
     message?: string,
     processedUrl?: string,
   ) {
-    await prisma.job.update({
-      where: { id: jobId },
-      data: { status, progress, processedUrl },
-    });
-    await prisma.jobEvent.create({
-      data: { jobId, status, message },
-    });
+    await prisma.$transaction([
+      prisma.job.update({
+        where: { id: jobId },
+        data: { status, progress, processedUrl },
+      }),
+      prisma.jobEvent.create({
+        data: { jobId, status, message },
+      }),
+    ]);
     
     logger.info("STATUS_UPDATE", {
       jobId,

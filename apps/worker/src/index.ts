@@ -37,13 +37,15 @@ worker.on("failed", async (job, err) => {
       // Update final status in DB using the Prisma UUID, NOT BullMQ's internal id
       if (dbJobId) {
         try {
-          await prisma.job.update({
-            where: { id: dbJobId },
-            data: { status: "failed", progress: 0, error: err.message },
-          });
-          await prisma.jobEvent.create({
-            data: { jobId: dbJobId, status: "failed", message: err.message },
-          });
+          await prisma.$transaction([
+            prisma.job.update({
+              where: { id: dbJobId },
+              data: { status: "failed", progress: 0, error: err.message },
+            }),
+            prisma.jobEvent.create({
+              data: { jobId: dbJobId, status: "failed", message: err.message },
+            }),
+          ]);
         } catch (dbErr) {
           logger.error("DB_UPDATE_FAILED", { error: (dbErr as Error).message });
         }
@@ -62,6 +64,22 @@ worker.on("failed", async (job, err) => {
   } else {
     console.error(`[Worker] Unknown job failed:`, err);
   }
+});
+
+import { s3Client, DeleteObjectCommand, s3BucketName } from "@repo/s3";
+
+const cleanupWorker = new Worker(
+  "cleanup",
+  async (job) => {
+    const { key } = job.data;
+    logger.info("PROCESSING_S3_CLEANUP", { key });
+    await s3Client.send(new DeleteObjectCommand({ Bucket: s3BucketName, Key: key }));
+  },
+  { connection: connection as any, concurrency: 2 }
+);
+
+cleanupWorker.on("failed", (job, err) => {
+  logger.error("CLEANUP_JOB_FAILED", { key: job?.data.key, error: err.message, attempts: job?.attemptsMade });
 });
 
 console.log("Media processing worker started, listening for jobs...");

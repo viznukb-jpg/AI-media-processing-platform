@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, ActivityIndicator } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, Image, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMediaUpload } from '../hooks/useMediaUpload';
 import { ScreenContainer } from '@/shared/components/ScreenContainer';
@@ -8,7 +8,22 @@ import { ProgressBar } from '@/shared/components/ProgressBar';
 import { colors } from '@/shared/theme/colors';
 
 export const UploadScreen = () => {
-  const { imageUri, isUploading, progress, pickImage, upload, reset } = useMediaUpload();
+  const { imageUri, isUploading, progress, error, pickImage, upload, reset } = useMediaUpload();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (error) {
+      Alert.alert("Error", error);
+    }
+  }, [error]);
+
+  const handleUpload = async () => {
+    const jobId = await upload();
+    if (jobId) {
+      Alert.alert("Success", "Media uploaded and job queued!");
+      router.push(`/job/${jobId}`);
+    }
+  };
 
   return (
     <ScreenContainer center>
@@ -42,7 +57,7 @@ export const UploadScreen = () => {
               />
               <Button 
                 title="Upload to S3" 
-                onPress={upload} 
+                onPress={handleUpload} 
                 variant="primary" 
                 style={{ flex: 1, marginLeft: 10 }} 
               />

@@ -20,6 +20,12 @@ jobs:
     
     - run: npm ci
 
+    - name: Run type check
+      run: |
+        npx tsc --noEmit -p apps/web-api/tsconfig.json
+        npx tsc --noEmit -p apps/worker/tsconfig.json
+        npx tsc --noEmit -p apps/mobile/tsconfig.json
+
     - name: Run unit tests
       run: npx vitest run
 

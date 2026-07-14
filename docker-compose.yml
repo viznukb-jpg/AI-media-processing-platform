@@ -17,6 +17,32 @@ services:
     volumes:
       - redisdata:/data
 
+  web-api:
+    build:
+      context: .
+      dockerfile: apps/web-api/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@db:5432/ai_media?schema=public
+      - REDIS_URL=redis://redis:6379
+      - BETTER_AUTH_SECRET=fallback_secret_for_docker
+      - NEXT_PUBLIC_API_URL=http://localhost:3000
+    depends_on:
+      - db
+      - redis
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@db:5432/ai_media?schema=public
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - db
+      - redis
+
 volumes:
   pgdata:
   redisdata:

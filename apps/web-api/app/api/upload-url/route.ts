@@ -4,6 +4,7 @@ import { withRateLimit } from "@/lib/rate-limit";
 import { S3Service } from "@/services/s3.service";
 import { getMaxBytes, formatBytes } from "@/lib/upload-limits";
 import { z } from "zod";
+import { logger } from "@repo/logger";
 
 const UploadSchema = z.object({
   filename: z.string().min(1, "Filename is required"),
@@ -19,7 +20,7 @@ export const POST = withAuth(
 
       if (!parseResult.success) {
         return NextResponse.json(
-          { error: parseResult.error.errors[0].message },
+          { error: parseResult.error.issues[0].message },
           { status: 400 }
         );
       }
@@ -36,10 +37,10 @@ export const POST = withAuth(
       }
 
       try {
-        const { url, key } = await S3Service.generateUploadUrl(session.user.id, filename, contentType, fileSize);
-        return NextResponse.json({ uploadUrl: url, key });
-      } catch (error) {
-        console.error("Error generating presigned URL:", error);
+        const { url, key, fields } = await S3Service.generateUploadUrl(session.user.id, filename, contentType, fileSize);
+        return NextResponse.json({ uploadUrl: url, key, fields });
+      } catch (error: any) {
+        logger.error("GENERATE_PRESIGNED_URL_FAILED", { error: error.message, userId: session.user.id, filename });
         return NextResponse.json(
           { error: "Failed to generate presigned URL" },
           { status: 500 }

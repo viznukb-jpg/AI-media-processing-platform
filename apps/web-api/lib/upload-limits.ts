@@ -1,5 +1,5 @@
 // Upload size limits by media type
-export const MAX_IMAGE_BYTES = 25 * 1024 * 1024;  // 25 MB
+export const MAX_IMAGE_BYTES = 25 * 1024 * 1024; // 25 MB
 export const MAX_VIDEO_BYTES = 250 * 1024 * 1024; // 250 MB
 
 export function getMaxBytes(contentType: string): number {
