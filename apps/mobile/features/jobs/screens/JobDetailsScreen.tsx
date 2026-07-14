@@ -86,10 +86,11 @@ export const JobDetailsScreen = ({ id }: Props) => {
                       try {
                         await deleteJob(job.id);
                         router.replace("/(tabs)/home");
-                      } catch (err: any) {
+                      } catch (err) {
+                        const errorMsg = err instanceof Error ? err.message : "Failed to delete job";
                         Alert.alert(
                           "Error",
-                          err.message || "Failed to delete job",
+                          errorMsg,
                         );
                       }
                     },

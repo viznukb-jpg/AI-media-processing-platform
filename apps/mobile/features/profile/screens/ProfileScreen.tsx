@@ -29,8 +29,10 @@ export const ProfileScreen = () => {
             await signOut();
             queryClient.clear();
             router.replace("/(auth)/login");
-          } catch (error: any) {
-            Alert.alert("Error", error.message || "Failed to log out");
+          } catch (error) {
+            const errorMsg =
+              error instanceof Error ? error.message : "Failed to log out";
+            Alert.alert("Error", errorMsg);
           }
         },
       },
@@ -55,8 +57,12 @@ export const ProfileScreen = () => {
               } catch (e) {}
               queryClient.clear();
               router.replace("/(auth)/login");
-            } catch (error: any) {
-              Alert.alert("Error", error.message || "Failed to delete account");
+            } catch (error) {
+              const errorMsg =
+                error instanceof Error
+                  ? error.message
+                  : "Failed to delete account";
+              Alert.alert("Error", errorMsg);
             }
           },
         },

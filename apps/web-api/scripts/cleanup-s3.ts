@@ -72,8 +72,9 @@ async function cleanupS3() {
     }
 
     logger.info("S3 cleanup completed successfully.");
-  } catch (error: any) {
-    logger.error("S3_CLEANUP_FAILED", { error: error.message });
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    logger.error("S3_CLEANUP_FAILED", { error: errorMsg });
   } finally {
     await prisma.$disconnect();
   }

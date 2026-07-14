@@ -2,12 +2,12 @@ import { apiFetch } from '../../auth/auth-client';
 import { Job, JobDetailsResponse } from '../types';
 
 export const fetchJobs = async (skip: number = 0, take: number = 20): Promise<Job[]> => {
-  const data = await apiFetch(`/api/jobs?skip=${skip}&take=${take}`);
+  const data = await apiFetch<{ jobs: Job[] }>(`/api/jobs?skip=${skip}&take=${take}`);
   return data?.jobs || [];
 };
 
 export const fetchJobDetails = async (id: string): Promise<JobDetailsResponse> => {
-  const data = await apiFetch(`/api/jobs/${id}`);
+  const data = await apiFetch<{ job: JobDetailsResponse }>(`/api/jobs/${id}`);
   return data?.job;
 };
 

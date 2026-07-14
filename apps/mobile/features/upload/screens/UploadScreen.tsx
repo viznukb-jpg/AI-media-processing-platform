@@ -1,14 +1,22 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Image, ActivityIndicator, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useMediaUpload } from '../hooks/useMediaUpload';
-import { ScreenContainer } from '@/shared/components/ScreenContainer';
-import { Button } from '@/shared/components/Button';
-import { ProgressBar } from '@/shared/components/ProgressBar';
-import { colors } from '@/shared/theme/colors';
+import React, { useEffect } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  ActivityIndicator,
+  Alert,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { useMediaUpload } from "../hooks/useMediaUpload";
+import { ScreenContainer } from "@/shared/components/ScreenContainer";
+import { Button } from "@/shared/components/Button";
+import { ProgressBar } from "@/shared/components/ProgressBar";
+import { colors } from "@/shared/theme/colors";
 
 export const UploadScreen = () => {
-  const { imageUri, isUploading, progress, error, pickImage, upload, reset } = useMediaUpload();
+  const { imageUri, isUploading, progress, error, pickImage, upload, reset } =
+    useMediaUpload();
   const router = useRouter();
 
   useEffect(() => {
@@ -28,11 +36,11 @@ export const UploadScreen = () => {
   return (
     <ScreenContainer center>
       <Text style={styles.title}>Upload Media</Text>
-      
+
       {!imageUri ? (
-        <Button 
-          title="Select Image from Gallery" 
-          onPress={pickImage} 
+        <Button
+          title="Select Image from Gallery"
+          onPress={pickImage}
           variant="secondary"
           style={styles.pickButton}
           textStyle={{ color: colors.primary }}
@@ -40,7 +48,7 @@ export const UploadScreen = () => {
       ) : (
         <View style={styles.previewContainer}>
           <Image source={{ uri: imageUri }} style={styles.imagePreview} />
-          
+
           {isUploading ? (
             <View style={styles.uploadingContainer}>
               <ActivityIndicator size="large" color={colors.primary} />
@@ -49,17 +57,17 @@ export const UploadScreen = () => {
             </View>
           ) : (
             <View style={styles.actionButtons}>
-              <Button 
-                title="Cancel" 
-                onPress={reset} 
-                variant="danger" 
-                style={{ flex: 1, marginRight: 10 }} 
+              <Button
+                title="Cancel"
+                onPress={reset}
+                variant="danger"
+                style={{ flex: 1, marginRight: 10 }}
               />
-              <Button 
-                title="Upload to S3" 
-                onPress={handleUpload} 
-                variant="primary" 
-                style={{ flex: 1, marginLeft: 10 }} 
+              <Button
+                title="Upload to S3"
+                onPress={handleUpload}
+                variant="primary"
+                style={{ flex: 1, marginLeft: 10 }}
               />
             </View>
           )}

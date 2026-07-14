@@ -8,14 +8,13 @@ export class S3Service {
     const uniqueId = crypto.randomUUID();
     const key = `uploads/${userId}/${uniqueId}.${ext}`;
 
-    const conditions: any[] = [
+    const conditions: Parameters<typeof createPresignedPost>[1]["Conditions"] = [
       ["eq", "$Content-Type", contentType],
       ["starts-with", "$key", `uploads/${userId}/`],
     ];
 
     if (contentLength) {
-      // Allow +/- 10% tolerance for length or strict matching
-      conditions.push(["content-length-range", 0, contentLength + 1048576]); // max size + 1MB buffer
+      conditions.push(["content-length-range", 100, contentLength + 1048576]);
     }
 
     const { url, fields } = await createPresignedPost(s3Client, {
@@ -63,7 +62,7 @@ export class S3Service {
             const deleteCommand = new DeleteObjectsCommand({
               Bucket: s3BucketName,
               Delete: {
-                Objects: listResponse.Contents.map((c: any) => ({ Key: c.Key })),
+                Objects: listResponse.Contents.filter(c => c.Key).map(c => ({ Key: c.Key! })),
               },
             });
             await s3Client.send(deleteCommand);
@@ -73,17 +72,21 @@ export class S3Service {
           continuationToken = listResponse.NextContinuationToken;
         }
       }
-    } catch (err: any) {
-      logger.error("DELETE_USER_FILES_FAILED", { userId, error: err.message });
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      logger.error("DELETE_USER_FILES_FAILED", { userId, error: errorMsg });
     }
   }
   static async fileExists(key: string): Promise<boolean> {
     try {
       await s3Client.send(new HeadObjectCommand({ Bucket: s3BucketName, Key: key }));
       return true;
-    } catch (err: any) {
-      if (err.name === "NotFound" || err.$metadata?.httpStatusCode === 404) {
-        return false;
+    } catch (err) {
+      if (err && typeof err === "object" && ("name" in err || "$metadata" in err)) {
+        const awsErr = err as { name?: string; $metadata?: { httpStatusCode?: number } };
+        if (awsErr.name === "NotFound" || awsErr.$metadata?.httpStatusCode === 404) {
+          return false;
+        }
       }
       throw err;
     }

@@ -39,8 +39,9 @@ export const POST = withAuth(
       try {
         const { url, key, fields } = await S3Service.generateUploadUrl(session.user.id, filename, contentType, fileSize);
         return NextResponse.json({ uploadUrl: url, key, fields });
-      } catch (error: any) {
-        logger.error("GENERATE_PRESIGNED_URL_FAILED", { error: error.message, userId: session.user.id, filename });
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        logger.error("GENERATE_PRESIGNED_URL_FAILED", { error: errorMsg, userId: session.user.id, filename });
         return NextResponse.json(
           { error: "Failed to generate presigned URL" },
           { status: 500 }

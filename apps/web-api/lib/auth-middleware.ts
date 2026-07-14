@@ -24,9 +24,10 @@ export function withAuth<T = Record<string, string>>(
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
 
-      return await handler(req, session as any, context);
-    } catch (error: any) {
-      logger.error("AUTH_MIDDLEWARE_ERROR", { error: error.message });
+      return await handler(req, session as { user: { id: string; email: string; name: string } }, context);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      logger.error("AUTH_MIDDLEWARE_ERROR", { error: errorMsg });
       return NextResponse.json(
         { error: "Internal Server Error" },
         { status: 500 },

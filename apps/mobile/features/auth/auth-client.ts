@@ -17,27 +17,49 @@ export const authClient = createAuthClient({
 
 export const { signIn, signUp, useSession, signOut } = authClient;
 
-export const apiFetch = async (endpoint: string, options?: RequestInit) => {
+export const apiFetch = async <T = unknown>(
+  endpoint: string,
+  options?: RequestInit,
+): Promise<T> => {
   const headers = new Headers(options?.headers);
-  if (options?.method && ['POST', 'PUT', 'PATCH'].includes(options.method.toUpperCase()) && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json');
+  const isWrite = options?.method && ["POST", "PUT", "PATCH"].includes(options.method.toUpperCase());
+  if (isWrite && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
   }
 
-  // Use authClient.$fetch with an absolute URL so it bypasses the /api/auth prefix
-  // but still automatically attaches the session headers/cookies!
-  const { data, error } = await authClient.$fetch<any>(`${env.apiBaseUrl}${endpoint}`, {
-    ...options,
-    headers: Object.fromEntries(headers.entries()),
-  });
+  const controller = new AbortController();
+  const timeoutMs = isWrite ? 30000 : 15000;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  if (error) {
-    if (error.status === 401) {
-      // Session expired — force sign out and redirect to login
-      await signOut().catch(() => {});
-      authEventEmitter.emit("session-expired");
+  try {
+    // Use authClient.$fetch with an absolute URL so it bypasses the /api/auth prefix
+    // but still automatically attaches the session headers/cookies!
+    const { data, error } = await authClient.$fetch<T>(
+      `${env.apiBaseUrl}${endpoint}`,
+      {
+        ...options,
+        // @ts-ignore
+        signal: controller.signal,
+        headers: Object.fromEntries(headers.entries()),
+      },
+    );
+
+    if (error) {
+      if (error.status === 401) {
+        // Session expired — force sign out and redirect to login
+        await signOut().catch(() => {});
+        authEventEmitter.emit("session-expired");
+      }
+      throw new Error(error.message || "API Error");
     }
-    throw new Error(error.message || "API Error");
-  }
 
-  return data;
+    return data as T;
+  } catch (err: any) {
+    if (err.name === "AbortError") {
+      throw new Error("Request timed out");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 };

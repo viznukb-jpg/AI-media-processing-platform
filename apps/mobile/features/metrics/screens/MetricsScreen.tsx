@@ -6,11 +6,18 @@ import { apiFetch } from '../../auth/auth-client';
 import { ScreenContainer } from '@/shared/components/ScreenContainer';
 import { colors } from '@/shared/theme/colors';
 
+interface MetricsData {
+  total: number;
+  totalUsers: number;
+  activeJobs: number;
+  statusBreakdown: Record<string, number>;
+}
+
 export const MetricsScreen = () => {
   const { data: metrics, isLoading: isMetricsLoading, error, refetch } = useQuery({
     queryKey: ['metrics'],
     queryFn: async () => {
-      return await apiFetch('/api/metrics');
+      return await apiFetch<MetricsData>('/api/metrics');
     },
     refetchInterval: 30000, // 30 seconds
   });

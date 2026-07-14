@@ -14,11 +14,13 @@ if (globalForPrisma.prisma) {
 } else {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
-    throw new Error("DATABASE_URL environment variable is required to initialize Prisma Client");
+    throw new Error(
+      "DATABASE_URL environment variable is required to initialize Prisma Client",
+    );
   }
   const pool = new Pool({ connectionString });
   const adapter = new PrismaPg(pool);
-  
+
   prismaInstance = new PrismaClient({
     adapter,
     log: ["query", "error", "warn"],
@@ -35,22 +37,28 @@ export * from "@prisma/client";
 export * from "./types";
 
 // Redis and Queue initialization
-export const connection = new IORedis(process.env.REDIS_URL || "redis://127.0.0.1:6379", {
-  maxRetriesPerRequest: null,
-});
+export const connection = new IORedis(
+  process.env.REDIS_URL || "redis://127.0.0.1:6379",
+  {
+    maxRetriesPerRequest: null,
+  },
+);
 
-export const mediaQueue = new Queue("media-processing", { 
-  connection: connection as any,
+export const mediaQueue = new Queue("media-processing", {
+  connection: connection as import("bullmq").QueueOptions["connection"],
   defaultJobOptions: {
     removeOnComplete: true,
-    removeOnFail: false,
-  }
+    removeOnFail: {
+      count: 100,
+      age: 24 * 3600 * 7,
+    },
+  },
 });
 
 export const dlqQueue = new Queue("dlq", {
-  connection: connection as any,
+  connection: connection as import("bullmq").QueueOptions["connection"],
 });
 
 export const cleanupQueue = new Queue("cleanup", {
-  connection: connection as any,
+  connection: connection as import("bullmq").QueueOptions["connection"],
 });

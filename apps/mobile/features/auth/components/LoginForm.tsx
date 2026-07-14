@@ -25,8 +25,9 @@ export const LoginForm = ({ onSwitchToRegister }: { onSwitchToRegister: () => vo
       } else {
         router.replace("/");
       }
-    } catch (err: any) {
-      Alert.alert("Error", err.message || "An unexpected error occurred");
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "An unexpected error occurred";
+      Alert.alert("Error", errorMsg);
     } finally {
       setIsLoading(false);
     }

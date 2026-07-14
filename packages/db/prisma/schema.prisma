@@ -5,14 +5,13 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model User {
   id            String    @id @default(uuid())
   name          String
   email         String    @unique
-  password      String?
+
   jobs          Job[]
   createdAt     DateTime  @default(now())
   emailVerified Boolean   @default(false)
@@ -44,9 +43,11 @@ model Job {
   error        String?
   events       JobEvent[]
   createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @default(now()) @updatedAt
 
   @@index([userId])
   @@index([status])
+  @@index([userId, createdAt])
 }
 
 model JobEvent {

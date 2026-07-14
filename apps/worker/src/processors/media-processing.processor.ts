@@ -12,6 +12,8 @@ import { ThumbnailService } from "../services/thumbnail";
 
 const bucketName = process.env.AWS_S3_BUCKET_NAME || "ai-media-platform-dev";
 
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export async function processMedia(job: BullJob) {
   const { jobId, originalUrl, userId } = job.data;
 
@@ -19,7 +21,7 @@ export async function processMedia(job: BullJob) {
   if (!jobId) {
     throw new Error(`Job payload missing jobId (bullJobId=${job.id})`);
   }
-  
+
   logger.info("JOB_STARTED", {
     jobId,
     userId,
@@ -32,26 +34,41 @@ export async function processMedia(job: BullJob) {
 
   try {
     // 1. Downloading
-    await JobStatusService.updateStatus(jobId, "downloading", 10, "Downloading from S3");
+    await JobStatusService.updateStatus(
+      jobId,
+      "downloading",
+      10,
+      "Downloading from S3",
+    );
     await MediaDownloader.download(originalUrl, tempInputPath);
+    await delay(1000); // UI polling delay
 
     // 2. Validate file type via magic bytes
-    await JobStatusService.updateStatus(jobId, "analyzing", 40, "Validating and extracting metadata");
-    
+    await JobStatusService.updateStatus(
+      jobId,
+      "analyzing",
+      40,
+      "Validating and extracting metadata",
+    );
     const fileType = await validateFileType(tempInputPath);
+    await delay(1000); // UI polling delay
 
-    // 3. Generate thumbnail
-    await JobStatusService.updateStatus(jobId, "generating_thumbnail", 70, "Generating thumbnail");
+    await JobStatusService.updateStatus(
+      jobId,
+      "generating_thumbnail",
+      70,
+      "Generating thumbnail",
+    );
+    await delay(1000); // UI polling delay
 
     const thumbnailBuffer = await ThumbnailService.generate(
       fileType.isVideo,
       tempInputPath,
       tempOutputPath,
       tmpDir,
-      jobId
+      jobId,
     );
 
-    // 4. Upload thumbnail
     const processedUrl = `processed/${userId}/${jobId}-thumb.jpg`;
     const putObjectCommand = new PutObjectCommand({
       Bucket: bucketName,
@@ -62,27 +79,35 @@ export async function processMedia(job: BullJob) {
     await s3Client.send(putObjectCommand);
 
     // 5. Completed
-    await JobStatusService.updateStatus(jobId, "completed", 100, "Job finished successfully", processedUrl);
-    
+    await JobStatusService.updateStatus(
+      jobId,
+      "completed",
+      100,
+      "Job finished successfully",
+      processedUrl,
+    );
+
     logger.info("JOB_COMPLETED", {
       jobId,
       processedUrl,
     });
 
     return { processedUrl };
-  } catch (error: any) {
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
     logger.error("JOB_FAILED_ATTEMPT", {
       jobId,
-      error: error.message,
+      error: errorMsg,
     });
-    // Note: We DO NOT update status to "failed" here. 
+    // Note: We DO NOT update status to "failed" here.
     // BullMQ will retry based on config. Final "failed" status is handled in worker.on("failed").
     throw error;
   } finally {
     // Cleanup temp files
     try {
       if (fs.existsSync(tempInputPath)) await fs.promises.unlink(tempInputPath);
-      if (fs.existsSync(tempOutputPath)) await fs.promises.unlink(tempOutputPath);
+      if (fs.existsSync(tempOutputPath))
+        await fs.promises.unlink(tempOutputPath);
     } catch (cleanupError) {
       logger.warn("FAILED_TO_CLEANUP", { error: cleanupError });
     }
