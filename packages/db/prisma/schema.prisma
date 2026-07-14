@@ -45,6 +45,7 @@ model Job {
   createdAt    DateTime   @default(now())
 
   @@index([userId])
+  @@index([status])
 }
 
 model JobEvent {

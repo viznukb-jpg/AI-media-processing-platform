@@ -25,7 +25,7 @@ export default function TabLayout() {
         options={{
           title: "System Metrics",
           tabBarLabel: "Metrics",
-          tabBarIcon: ({ color, size }) => <Ionicons name="bar-chart-outline" size={size} color={color} />
+          tabBarIcon: ({ color, size }) => <Ionicons name="bar-chart-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen

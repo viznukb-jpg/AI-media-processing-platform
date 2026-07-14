@@ -1,8 +1,8 @@
-import { s3Client, DeleteObjectCommand, GetObjectCommand, PutObjectCommand, getSignedUrl, s3BucketName } from "@repo/s3";
+import { s3Client, DeleteObjectCommand, GetObjectCommand, PutObjectCommand, getSignedUrl, s3BucketName, ListObjectsV2Command, DeleteObjectsCommand } from "@repo/s3";
 import crypto from "crypto";
 
 export class S3Service {
-  static async generateUploadUrl(userId: string, filename: string, contentType: string) {
+  static async generateUploadUrl(userId: string, filename: string, contentType: string, contentLength?: number) {
     const ext = filename.split(".").pop();
     const uniqueId = crypto.randomUUID();
     const key = `uploads/${userId}/${uniqueId}.${ext}`;
@@ -11,6 +11,7 @@ export class S3Service {
       Bucket: s3BucketName,
       Key: key,
       ContentType: contentType,
+      ...(contentLength && { ContentLength: contentLength }),
     });
 
     const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
@@ -35,8 +36,6 @@ export class S3Service {
 
   static async deleteUserFiles(userId: string) {
     try {
-      const { ListObjectsV2Command, DeleteObjectsCommand } = require("@repo/s3");
-      
       const prefixes = [`uploads/${userId}/`, `processed/${userId}/`];
       
       for (const prefix of prefixes) {

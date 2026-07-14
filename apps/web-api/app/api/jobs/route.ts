@@ -1,50 +1,39 @@
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth-middleware";
+import { withRateLimit } from "@/lib/rate-limit";
 import { JobService } from "@/services/job.service";
+import { handleApiError } from "@/lib/handle-api-error";
 import { z } from "zod";
-
-import { connection } from "@repo/db";
 
 const JobSchema = z.object({
   originalUrl: z.string().min(1, "originalUrl is required"),
 });
 
-export const POST = withAuth(async (req, session) => {
-  // Simple Rate Limiting: 5 jobs per minute per user
-  const rateLimitKey = `rate-limit:jobs:${session.user.id}`;
-  const currentCount = await connection.incr(rateLimitKey);
-  
-  if (currentCount === 1) {
-    await connection.expire(rateLimitKey, 60);
-  }
+export const POST = withAuth(
+  withRateLimit(
+    async (req, session) => {
+      const body = await req.json();
+      const parseResult = JobSchema.safeParse(body);
 
-  if (currentCount > 5) {
-    return NextResponse.json({ error: "Too many requests, please try again later." }, { status: 429 });
-  }
+      if (!parseResult.success) {
+        return NextResponse.json(
+          { error: parseResult.error.errors[0].message },
+          { status: 400 }
+        );
+      }
 
-  const body = await req.json();
-  const parseResult = JobSchema.safeParse(body);
+      const { originalUrl } = parseResult.data;
 
-  if (!parseResult.success) {
-    return NextResponse.json(
-      { error: parseResult.error.errors[0].message },
-      { status: 400 }
-    );
-  }
-
-  const { originalUrl } = parseResult.data;
-
-  try {
-    const job = await JobService.createJob(session.user.id, originalUrl);
-    return NextResponse.json({ job }, { status: 201 });
-  } catch (error: any) {
-    console.error("Error creating job:", error);
-    if (error.message === "Invalid or unauthorized S3 key") {
-      return NextResponse.json({ error: error.message }, { status: 403 });
-    }
-    return NextResponse.json({ error: "Failed to create job" }, { status: 500 });
-  }
-});
+      try {
+        const job = await JobService.createJob(session.user.id, originalUrl);
+        return NextResponse.json({ job }, { status: 201 });
+      } catch (error) {
+        return handleApiError(error);
+      }
+    },
+    { keyPrefix: "jobs", limit: 5, windowSeconds: 60 }
+  )
+);
 
 export const GET = withAuth(async (req, session) => {
   try {
@@ -55,7 +44,6 @@ export const GET = withAuth(async (req, session) => {
     const jobs = await JobService.getJobs(session.user.id, skip, take);
     return NextResponse.json({ jobs });
   } catch (error) {
-    console.error("Error fetching jobs:", error);
-    return NextResponse.json({ error: "Failed to fetch jobs" }, { status: 500 });
+    return handleApiError(error);
   }
 });

@@ -1,9 +1,9 @@
 import { apiFetch } from '../../auth/auth-client';
 
-export const requestUploadUrl = async (filename: string, contentType: string) => {
+export const requestUploadUrl = async (filename: string, contentType: string, fileSize: number) => {
   const data = await apiFetch("/api/upload-url", {
     method: "POST",
-    body: JSON.stringify({ filename, contentType }),
+    body: JSON.stringify({ filename, contentType, fileSize }),
   });
   return data;
 };

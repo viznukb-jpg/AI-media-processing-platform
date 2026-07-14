@@ -45,3 +45,7 @@ export const mediaQueue = new Queue("media-processing", {
     removeOnFail: false,
   }
 });
+
+export const dlqQueue = new Queue("dlq", {
+  connection: connection as any,
+});

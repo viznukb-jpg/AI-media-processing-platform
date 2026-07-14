@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useSession } from "@/features/auth/auth-client";
 import { useEffect } from "react";
 import { useRouter, useSegments } from "expo-router";
+import { authEventEmitter } from "@/shared/utils/event-emitter";
 
 const queryClient = new QueryClient();
 

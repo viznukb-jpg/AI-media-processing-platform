@@ -1,4 +1,15 @@
 services:
+  db:
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ai_media
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
   redis:
     image: redis:7
     ports:
@@ -7,4 +18,5 @@ services:
       - redisdata:/data
 
 volumes:
+  pgdata:
   redisdata:

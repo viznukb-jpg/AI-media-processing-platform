@@ -2,14 +2,16 @@ import { NextResponse } from "next/server";
 import { auth } from "./auth";
 import { headers } from "next/headers";
 
-type AuthenticatedHandler = (
+type RouteContext<T = Record<string, string>> = { params: Promise<T> };
+
+type AuthenticatedHandler<T = Record<string, string>> = (
   req: Request,
   session: { user: { id: string; email: string; name: string } },
-  context: any
+  context: RouteContext<T>
 ) => Promise<NextResponse> | NextResponse;
 
-export function withAuth(handler: AuthenticatedHandler) {
-  return async (req: Request, context: any) => {
+export function withAuth<T = Record<string, string>>(handler: AuthenticatedHandler<T>) {
+  return async (req: Request, context: RouteContext<T>) => {
     try {
       const session = await auth.api.getSession({
         headers: await headers(),

@@ -49,7 +49,14 @@ export const useMediaUpload = () => {
       else if (ext === 'avi') contentType = 'video/x-msvideo';
       else if (ext === 'webm') contentType = 'video/webm';
 
-      const urlData = await requestUploadUrl(fileName, contentType);
+      // Get file size for server-side validation
+      const fileInfo = await FileSystem.getInfoAsync(imageUri);
+      if (!fileInfo.exists || !('size' in fileInfo)) {
+        throw new Error("Could not read file info");
+      }
+      const fileSize = fileInfo.size;
+
+      const urlData = await requestUploadUrl(fileName, contentType, fileSize);
 
       if (!urlData?.uploadUrl) {
         throw new Error("Failed to get upload URL");

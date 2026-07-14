@@ -3,6 +3,7 @@ import { expoClient } from "@better-auth/expo/client";
 import * as SecureStore from "expo-secure-store";
 
 import { env } from "@/shared/config/env";
+import { authEventEmitter } from "@/shared/utils/event-emitter";
 
 export const authClient = createAuthClient({
   baseURL: env.apiBaseUrl,
@@ -24,6 +25,11 @@ export const apiFetch = async (endpoint: string, options?: RequestInit) => {
   });
 
   if (error) {
+    if (error.status === 401) {
+      // Session expired — force sign out and redirect to login
+      await signOut().catch(() => {});
+      authEventEmitter.emit("session-expired");
+    }
     throw new Error(error.message || "API Error");
   }
 

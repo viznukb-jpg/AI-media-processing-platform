@@ -12,4 +12,9 @@ export const auth = betterAuth({
   trustedOrigins: process.env.BETTER_AUTH_TRUSTED_ORIGINS 
     ? process.env.BETTER_AUTH_TRUSTED_ORIGINS.split(",") 
     : [],
+  rateLimit: {
+    enabled: true,
+    window: 60,
+    max: 10,
+  },
 });
