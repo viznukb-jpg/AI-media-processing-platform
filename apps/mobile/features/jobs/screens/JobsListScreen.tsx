@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { FlatList, ActivityIndicator, Text } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useJobsQuery } from '../hooks/useJobsQuery';
 import { JobCard } from '../components/JobCard';
 import { ScreenContainer } from '@/shared/components/ScreenContainer';
@@ -11,6 +11,12 @@ import { colors } from '@/shared/theme/colors';
 export const JobsListScreen = () => {
   const router = useRouter();
   const { data: jobs, isLoading, error, refetch } = useJobsQuery();
+
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
 
   if (isLoading) {
     return (

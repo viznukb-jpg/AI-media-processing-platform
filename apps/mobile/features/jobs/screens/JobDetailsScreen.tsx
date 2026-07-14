@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Image } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Image, Alert, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useJobQuery } from '../hooks/useJobQuery';
 import { JobTimeline } from '../components/JobTimeline';
@@ -7,7 +7,6 @@ import { ScreenContainer } from '@/shared/components/ScreenContainer';
 import { StatusBadge } from '@/shared/components/StatusBadge';
 import { ProgressBar } from '@/shared/components/ProgressBar';
 import { Button } from '@/shared/components/Button';
-import { getS3Url } from '@/shared/utils/storage-url';
 import { colors } from '@/shared/theme/colors';
 
 type Props = {
@@ -40,24 +39,55 @@ export const JobDetailsScreen = ({ id }: Props) => {
 
   return (
     <ScreenContainer>
-      <View style={styles.header}>
-        <Text style={styles.title}>Job Progress</Text>
-        <StatusBadge status={job.status} />
-      </View>
-
-      <View style={styles.progressSection}>
-        <ProgressBar value={job.progress} style={{ marginBottom: 8 }} />
-        <Text style={styles.progressText}>{job.progress}% Completed</Text>
-      </View>
-
-      {job.status === "completed" && job.processedUrl && (
-        <View style={styles.resultContainer}>
-          <Text style={styles.resultTitle}>Result (Thumbnail):</Text>
-          <Image source={{ uri: getS3Url(job.processedUrl) }} style={styles.resultImage} />
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Job Progress</Text>
+          <StatusBadge status={job.status} />
         </View>
-      )}
 
-      {job.events && <JobTimeline events={job.events} />}
+        <View style={styles.progressSection}>
+          <ProgressBar value={job.progress} style={{ marginBottom: 8 }} />
+          <Text style={styles.progressText}>{job.progress}% Completed</Text>
+        </View>
+
+        {job.status === "completed" && (job as any).signedProcessedUrl && (
+          <View style={styles.resultContainer}>
+            <Text style={styles.resultTitle}>Result (Thumbnail):</Text>
+            <Image source={{ uri: (job as any).signedProcessedUrl }} style={styles.resultImage} />
+          </View>
+        )}
+
+        {job.events && <JobTimeline events={job.events} />}
+
+        <View style={{ padding: 20 }}>
+          <Button 
+            title="Delete Job" 
+            onPress={() => {
+              Alert.alert(
+                "Delete Job",
+                "Are you sure you want to delete this job and all its files? This action cannot be undone.",
+                [
+                  { text: "Cancel", style: "cancel" },
+                  { 
+                    text: "Delete", 
+                    style: "destructive",
+                    onPress: async () => {
+                      try {
+                        const { deleteJob } = await import('../api/jobs.api');
+                        await deleteJob(job.id);
+                        router.replace("/(tabs)/home");
+                      } catch (err: any) {
+                        Alert.alert("Error", err.message || "Failed to delete job");
+                      }
+                    }
+                  }
+                ]
+              );
+            }} 
+            variant="danger" 
+          />
+        </View>
+      </ScrollView>
     </ScreenContainer>
   );
 };

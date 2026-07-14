@@ -3,7 +3,8 @@ import { prisma } from "@repo/db";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { s3Client } from "@/lib/s3";
-import { DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 export async function GET(
   req: Request,
@@ -37,7 +38,17 @@ export async function GET(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    return NextResponse.json({ job });
+    let signedProcessedUrl = null;
+    if (job.status === "completed" && job.processedUrl) {
+      const bucket = process.env.AWS_S3_BUCKET_NAME || "ai-media-platform-dev";
+      const getObjectCommand = new GetObjectCommand({
+        Bucket: bucket,
+        Key: job.processedUrl,
+      });
+      signedProcessedUrl = await getSignedUrl(s3Client, getObjectCommand, { expiresIn: 3600 });
+    }
+
+    return NextResponse.json({ job: { ...job, signedProcessedUrl } });
   } catch (error) {
     console.error("Error fetching job details:", error);
     return NextResponse.json(
