@@ -26,8 +26,10 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:password@db:5432/ai_media?schema=public
       - REDIS_URL=redis://redis:6379
-      - BETTER_AUTH_SECRET=fallback_secret_for_docker
       - NEXT_PUBLIC_API_URL=http://localhost:3000
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-dummy-secret-key-that-is-at-least-32-chars}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-dummy-key}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-dummy-secret}
     depends_on:
       - db
       - redis
@@ -39,6 +41,9 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:password@db:5432/ai_media?schema=public
       - REDIS_URL=redis://redis:6379
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-dummy-secret-key-that-is-at-least-32-chars}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-dummy-key}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-dummy-secret}
     depends_on:
       - db
       - redis

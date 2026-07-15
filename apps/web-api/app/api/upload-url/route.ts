@@ -6,9 +6,20 @@ import { getMaxBytes, formatBytes } from "@/lib/upload-limits";
 import { z } from "zod";
 import { logger } from "@repo/logger";
 
+const ALLOWED_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "video/mp4",
+  "video/quicktime",
+] as const;
+
 const UploadSchema = z.object({
   filename: z.string().min(1, "Filename is required"),
-  contentType: z.string().min(1, "Content type is required").regex(/^(image|video)\/.+$/, "Invalid content type"),
+  contentType: z.string().refine((val) => ALLOWED_MIME_TYPES.includes(val as any), {
+    message: "Invalid content type. Only safe images (JPEG, PNG, WEBP, GIF) and videos (MP4, QuickTime) are allowed.",
+  }),
   fileSize: z.number().int().positive("File size must be a positive integer"),
 });
 

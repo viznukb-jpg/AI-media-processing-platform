@@ -15,7 +15,7 @@ export class VideoThumbnailStrategy {
         .on("error", reject)
         .screenshots({
           count: 1,
-          timemarks: ['00:00:01.000'],
+          timestamps: ['50%'],
           size: '300x300',
           folder: tmpDir,
           filename: `${jobId}-thumb.jpg`

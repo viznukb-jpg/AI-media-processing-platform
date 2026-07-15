@@ -35,15 +35,35 @@ export const POST = withAuth(
   )
 );
 
-export const GET = withAuth(async (req, session) => {
-  try {
-    const url = new URL(req.url);
-    const skip = parseInt(url.searchParams.get("skip") || "0");
-    const take = parseInt(url.searchParams.get("take") || "20");
-
-    const jobs = await JobService.getJobs(session.user.id, skip, take);
-    return NextResponse.json({ jobs });
-  } catch (error) {
-    return handleApiError(error);
-  }
+const PaginationSchema = z.object({
+  skip: z.coerce.number().int().min(0).optional().default(0),
+  take: z.coerce.number().int().min(1).max(50).optional().default(20),
 });
+
+export const GET = withAuth(
+  withRateLimit(
+    async (req, session) => {
+      try {
+        const url = new URL(req.url);
+        const queryParams = Object.fromEntries(url.searchParams.entries());
+        
+        const parseResult = PaginationSchema.safeParse(queryParams);
+
+        if (!parseResult.success) {
+          return NextResponse.json(
+            { error: parseResult.error.issues[0].message },
+            { status: 400 }
+          );
+        }
+
+        const { skip, take } = parseResult.data;
+
+        const jobs = await JobService.getJobs(session.user.id, skip, take);
+        return NextResponse.json({ jobs });
+      } catch (error) {
+        return handleApiError(error);
+      }
+    },
+    { keyPrefix: "jobs-get", limit: 30, windowSeconds: 60 }
+  )
+);

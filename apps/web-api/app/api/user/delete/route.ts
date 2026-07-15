@@ -3,6 +3,7 @@ import { prisma } from "@repo/db";
 import { withAuth } from "@/lib/auth-middleware";
 import { S3Service } from "@/services/s3.service";
 import { logger } from "@repo/logger";
+import { handleApiError } from "@/lib/handle-api-error";
 
 export const DELETE = withAuth(async (req, session) => {
   try {
@@ -21,6 +22,6 @@ export const DELETE = withAuth(async (req, session) => {
       error: errorMsg,
       userId: session.user.id,
     });
-    return NextResponse.json({ error: errorMsg }, { status: 500 });
+    return handleApiError(error);
   }
 });

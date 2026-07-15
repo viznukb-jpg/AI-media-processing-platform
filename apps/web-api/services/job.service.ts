@@ -32,71 +32,95 @@ export class JobService {
       throw new UnauthorizedS3KeyError();
     }
 
-    // Idempotency: check if active job already exists
-    const existingJob = await prisma.job.findFirst({
-      where: {
-        userId,
-        originalUrl,
-        status: { notIn: ["completed", "failed"] }
-      }
-    });
-    if (existingJob) return existingJob;
+    // Idempotency check with Redis Distributed Lock (Mutex) to prevent race conditions
+    const lockKey = `lock:createJob:${originalUrl}`;
+    // Attempt to acquire lock for 10 seconds
+    const acquired = await connection.set(lockKey, "1", "NX", "EX", 10);
 
-    const exists = await S3Service.fileExists(originalUrl);
-    if (!exists) {
-      throw new ValidationError("Uploaded file not found in storage");
-    }
-
-    const job = await prisma.$transaction(async (tx) => {
-      const newJob = await tx.job.create({
-        data: {
+    if (!acquired) {
+      // Another concurrent request is processing this originalUrl right now.
+      // Wait a bit, then fetch the created job to ensure idempotency.
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const existingJob = await prisma.job.findFirst({
+        where: {
           userId,
           originalUrl,
-          status: "queued",
-        },
-      });
-      await tx.jobEvent.create({
-        data: {
-          jobId: newJob.id,
-          status: "queued",
-          message: "Job added to processing queue",
-        },
-      });
-      return newJob;
-    });
-
-    try {
-      await mediaQueue.add(
-        "process-media",
-        {
-          jobId: job.id,
-          originalUrl,
-          userId,
-        },
-        {
-          attempts: 3,
-          backoff: {
-            type: "exponential",
-            delay: 2000,
-          },
-        },
-      );
-    } catch (err) {
-      await prisma.job.update({ 
-        where: { id: job.id },
-        data: { status: "failed", error: "Failed to add job to processing queue" } 
-      });
-      await prisma.jobEvent.create({
-        data: {
-          jobId: job.id,
-          status: "failed",
-          message: "Failed to add job to processing queue",
+          status: { notIn: ["completed", "failed"] }
         }
       });
-      throw new Error("Failed to add job to processing queue");
+      if (existingJob) return existingJob;
+      throw new Error("Job creation in progress by another request");
     }
 
-    return job;
+    try {
+      const existingJob = await prisma.job.findFirst({
+        where: {
+          userId,
+          originalUrl,
+          status: { notIn: ["completed", "failed"] }
+        }
+      });
+      if (existingJob) return existingJob;
+
+      const exists = await S3Service.fileExists(originalUrl);
+      if (!exists) {
+        throw new ValidationError("Uploaded file not found in storage");
+      }
+
+      const job = await prisma.$transaction(async (tx) => {
+        const newJob = await tx.job.create({
+          data: {
+            userId,
+            originalUrl,
+            status: "queued",
+          },
+        });
+        await tx.jobEvent.create({
+          data: {
+            jobId: newJob.id,
+            status: "queued",
+            message: "Job added to processing queue",
+          },
+        });
+        return newJob;
+      });
+
+      try {
+        await mediaQueue.add(
+          "process-media",
+          {
+            jobId: job.id,
+            originalUrl,
+            userId,
+          },
+          {
+            attempts: 3,
+            backoff: {
+              type: "exponential",
+              delay: 2000,
+            },
+          },
+        );
+      } catch (err) {
+        await prisma.job.update({ 
+          where: { id: job.id },
+          data: { status: "failed", error: "Failed to add job to processing queue" } 
+        });
+        await prisma.jobEvent.create({
+          data: {
+            jobId: job.id,
+            status: "failed",
+            message: "Failed to add job to processing queue",
+          }
+        });
+        throw new Error("Failed to add job to processing queue");
+      }
+
+      return job;
+    } finally {
+      // Always release the lock when done
+      await connection.del(lockKey);
+    }
   }
 
   static async getJobs(userId: string, skip: number = 0, take: number = 20) {
@@ -113,28 +137,15 @@ export class JobService {
       includeEvents: true,
     });
 
-    // Check if the file still exists in S3 (in case of manual deletion)
-    const updatedAtTime = job.updatedAt ? job.updatedAt.getTime() : 0;
-    const shouldCheckS3 = job.status === "queued" || (Date.now() - updatedAtTime > 10000);
-    if (shouldCheckS3) {
-      const exists = await S3Service.fileExists(job.originalUrl);
-      if (!exists) {
-        // Auto-cleanup DB if S3 file is missing
-        await prisma.job.delete({ where: { id: jobId } });
-        throw new NotFoundError("Job file no longer exists in storage");
-      }
-    }
-
     let signedProcessedUrl = null;
     if (job.status === "completed" && job.processedUrl) {
       const cacheKey = `signed_url:${job.processedUrl}`;
       signedProcessedUrl = await connection.get(cacheKey);
       if (!signedProcessedUrl) {
-        const processedExists = await S3Service.fileExists(job.processedUrl);
-        if (processedExists) {
-          signedProcessedUrl = await S3Service.generateDownloadUrl(job.processedUrl);
-          await connection.set(cacheKey, signedProcessedUrl, "EX", 3000);
-        }
+        // Just generate the URL locally without making an expensive HeadObject check to S3.
+        // If the file is missing for some reason, S3 will return a 404 directly to the client.
+        signedProcessedUrl = await S3Service.generateDownloadUrl(job.processedUrl);
+        await connection.set(cacheKey, signedProcessedUrl, "EX", 3000);
       }
     }
 

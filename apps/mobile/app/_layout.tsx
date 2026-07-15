@@ -32,7 +32,10 @@ export default function RootLayout() {
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="job/[id]" options={{ title: "Job Details", headerShown: true }} />
+        <Stack.Screen
+          name="job/[id]"
+          options={{ title: "Job Details", headerShown: true }}
+        />
       </Stack>
     </QueryClientProvider>
   );

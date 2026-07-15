@@ -4,7 +4,16 @@ import { logger } from "@repo/logger";
 
 export class S3Service {
   static async generateUploadUrl(userId: string, filename: string, contentType: string, contentLength?: number) {
-    const ext = filename.split(".").pop();
+    const MIME_TO_EXT: Record<string, string> = {
+      "image/jpeg": "jpg",
+      "image/png": "png",
+      "image/webp": "webp",
+      "image/gif": "gif",
+      "video/mp4": "mp4",
+      "video/quicktime": "mov",
+    };
+    const ext = MIME_TO_EXT[contentType] || contentType.split("/").pop()?.replace(/[^a-z0-9]/g, "").substring(0, 10) || "bin";
+    
     const uniqueId = crypto.randomUUID();
     const key = `uploads/${userId}/${uniqueId}.${ext}`;
 

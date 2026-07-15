@@ -59,7 +59,7 @@ export async function processMedia(job: BullJob) {
       70,
       "Generating thumbnail",
     );
-    await delay(1000); // UI polling delay
+    await delay(1000);
 
     const thumbnailBuffer = await ThumbnailService.generate(
       fileType.isVideo,
