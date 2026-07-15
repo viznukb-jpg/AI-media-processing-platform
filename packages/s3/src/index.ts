@@ -1,6 +1,9 @@
 import { S3Client } from "@aws-sdk/client-s3";
 
-export const s3BucketName = process.env.AWS_S3_BUCKET_NAME;
+export const s3BucketName = process.env.AWS_S3_BUCKET_NAME || "";
+if (!s3BucketName) {
+  console.warn("⚠️ AWS_S3_BUCKET_NAME is not set. S3 operations will fail.");
+}
 export const s3Region = process.env.AWS_REGION;
 
 if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {

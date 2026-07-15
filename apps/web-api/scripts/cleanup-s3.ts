@@ -14,7 +14,7 @@ async function cleanupS3() {
     });
 
     const validKeys = new Set<string>();
-    jobs.forEach(job => {
+    jobs.forEach((job: { originalUrl: string | null; processedUrl: string | null }) => {
       if (job.originalUrl) validKeys.add(job.originalUrl);
       if (job.processedUrl) validKeys.add(job.processedUrl);
     });

@@ -26,7 +26,7 @@ export const GET = withAuth(
 
         // Format the response
         const statusBreakdown = jobStats.reduce(
-          (acc, curr) => {
+          (acc: Record<string, number>, curr: any) => {
             acc[curr.status] = curr._count._all;
             return acc;
           },

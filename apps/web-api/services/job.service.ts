@@ -35,7 +35,7 @@ export class JobService {
     // Idempotency check with Redis Distributed Lock (Mutex) to prevent race conditions
     const lockKey = `lock:createJob:${originalUrl}`;
     // Attempt to acquire lock for 10 seconds
-    const acquired = await connection.set(lockKey, "1", "NX", "EX", 10);
+    const acquired = await connection.set(lockKey, "1", "EX", 10, "NX");
 
     if (!acquired) {
       // Another concurrent request is processing this originalUrl right now.
@@ -67,7 +67,7 @@ export class JobService {
         throw new ValidationError("Uploaded file not found in storage");
       }
 
-      const job = await prisma.$transaction(async (tx) => {
+      const job = await prisma.$transaction(async (tx: any) => {
         const newJob = await tx.job.create({
           data: {
             userId,
